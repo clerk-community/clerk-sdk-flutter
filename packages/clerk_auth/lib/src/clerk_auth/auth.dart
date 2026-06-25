@@ -361,8 +361,9 @@ class Auth {
     required Uri? redirect,
   }) async {
     final redirectUrl = redirect?.toString() ?? ClerkConstants.oauthRedirect;
+    final identifier = strategy.isEnterpriseSSO ? client.signIn?.identifier : null;
     await _api
-        .createSignIn(strategy: strategy, redirectUrl: redirectUrl)
+        .createSignIn(strategy: strategy, redirectUrl: redirectUrl, identifier: identifier)
         .then(_housekeeping);
     if (client.signIn case SignIn signIn when signIn.hasVerification == false) {
       await _catchExternalErrors(
