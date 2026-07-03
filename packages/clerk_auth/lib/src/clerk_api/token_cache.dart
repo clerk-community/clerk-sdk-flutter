@@ -148,14 +148,28 @@ class TokenCache {
   /// Update the tokens and IDs from a newly arrived [http.Response]
   /// and [Session]
   ///
-  void updateFrom(http.Response resp, Client client) {
+  /// Once a client id is cached, credentials for a different client are
+  /// discarded unless [allowClientChange] is set: a response resolving to
+  /// another client means the token presented by its request had already
+  /// been rotated away (e.g. during an oAuth handoff), and adopting the
+  /// new identity would orphan the pinned client and its sessions.
+  ///
+  /// Returns whether the credentials were accepted.
+  bool updateFrom(
+    http.Response resp,
+    Client client, {
+    bool allowClientChange = false,
+  }) {
+    if (client.id case String id when id != _clientId) {
+      if (hasClientId && allowClientChange == false) {
+        return false;
+      }
+      _setClientId(id);
+    }
+
     final newClientToken = resp.headers[HttpHeaders.authorizationHeader];
     if (newClientToken case String token) {
       _setClientToken(token);
-    }
-
-    if (client.id case String id) {
-      _setClientId(id);
     }
 
     if (client.activeSession case Session session) {
@@ -167,5 +181,7 @@ class TokenCache {
         makeAndCacheSessionToken(jwt);
       }
     }
+
+    return true;
   }
 }

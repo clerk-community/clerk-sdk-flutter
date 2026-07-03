@@ -500,10 +500,10 @@ void main() {
       });
 
       group('refreshClient', () {
-        test('updates client from API', () async {
+        test('updates the current client from the API', () async {
           mockHttp.addClientResponse(clientId: 'client_initial');
           mockHttp.addEnvironmentResponse();
-          mockHttp.addClientResponse(clientId: 'client_refreshed');
+          mockHttp.addClientWithSessionResponse(clientId: 'client_initial');
 
           auth = Auth(
             config: TestAuthConfig(
@@ -514,9 +514,97 @@ void main() {
 
           await auth.initialize();
           expect(auth.client.id, 'client_initial');
+          expect(auth.user, isNull);
 
           await auth.refreshClient();
-          expect(auth.client.id, 'client_refreshed');
+          expect(auth.client.id, 'client_initial');
+          expect(auth.user, isNotNull);
+
+          auth.terminate();
+        });
+
+        // Regression test: during an oAuth handoff the client token is
+        // rotated, and a refresh presenting the superseded token resolves
+        // to a freshly minted, session-less client. Adopting it silently
+        // signs the user out and orphans the real client.
+        test('discards a refresh that resolves to a different client',
+            () async {
+          mockHttp.addClientWithSessionResponse(clientId: 'client_original');
+          mockHttp.addEnvironmentResponse();
+          mockHttp.addClientResponse(clientId: 'client_minted');
+
+          auth = Auth(
+            config: TestAuthConfig(
+              publishableKey: _validPublishableKey,
+              httpService: mockHttp,
+            ),
+          );
+
+          await auth.initialize();
+          expect(auth.user, isNotNull);
+
+          await auth.refreshClient();
+
+          // a refresh resolving to a different client must not replace
+          // the signed-in client
+          expect(auth.client.id, 'client_original');
+          expect(auth.user, isNotNull);
+
+          auth.terminate();
+        });
+
+        test('adopts a persistently mismatched client after repeated refreshes',
+            () async {
+          mockHttp.addClientWithSessionResponse(clientId: 'client_original');
+          mockHttp.addEnvironmentResponse();
+          for (var i = 0; i < 4; i++) {
+            mockHttp.addClientResponse(clientId: 'client_replacement');
+          }
+
+          auth = Auth(
+            config: TestAuthConfig(
+              publishableKey: _validPublishableKey,
+              httpService: mockHttp,
+            ),
+          );
+
+          await auth.initialize();
+
+          // mismatched clients must be discarded until the pinned client
+          // is demonstrably gone
+          for (var i = 0; i < 3; i++) {
+            await auth.refreshClient();
+            expect(auth.client.id, 'client_original');
+          }
+
+          // the pinned client has not been returned for several consecutive
+          // refreshes: it is genuinely gone, so the new client is adopted
+          await auth.refreshClient();
+          expect(auth.client.id, 'client_replacement');
+
+          auth.terminate();
+        });
+
+        test('keeps the current client when the refresh fails', () async {
+          mockHttp.addClientWithSessionResponse(clientId: 'client_original');
+          mockHttp.addEnvironmentResponse();
+          mockHttp.addJsonResponse({'errors': []}, statusCode: 500);
+
+          auth = Auth(
+            config: TestAuthConfig(
+              publishableKey: _validPublishableKey,
+              httpService: mockHttp,
+            ),
+          );
+
+          await auth.initialize();
+          expect(auth.user, isNotNull);
+
+          await auth.refreshClient();
+
+          // a failed refresh must not sign the user out
+          expect(auth.client.id, 'client_original');
+          expect(auth.user, isNotNull);
 
           auth.terminate();
         });

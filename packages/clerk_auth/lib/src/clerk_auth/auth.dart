@@ -282,9 +282,16 @@ class Auth {
 
   /// Refresh the current [Client]
   ///
+  /// A refresh can only confirm or advance the client we already have:
+  /// an empty result (transient failure, or a response discarded because
+  /// it resolved to a different client) leaves the current client intact.
+  /// Only explicit operations ([signOut], [resetClient]) may clear it.
   Future<void> refreshClient() async {
-    client = await _api.currentClient();
-    update();
+    final newClient = await _api.currentClient();
+    if (newClient.isNotEmpty) {
+      client = newClient;
+      update();
+    }
   }
 
   /// Reset the current [Client]: clear any [SignUp] or [SignIn] object

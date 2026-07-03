@@ -116,6 +116,11 @@ class Api with Logging {
     return Environment.empty;
   }
 
+  // Number of consecutive mismatched `GET /client` responses after which
+  // the pinned client is deemed genuinely gone and the new one adopted
+  static const _maxClientMismatches = 3;
+  int _clientMismatchCount = 0;
+
   Future<Client> _fetchClient({required HttpMethod method}) async {
     final resp = await _fetch(
       path: '/client',
@@ -125,8 +130,23 @@ class Api with Logging {
     if (resp.statusCode == HttpStatus.ok) {
       final body = json.decode(resp.body) as _JsonObject;
       final client = Client.fromJson(body[_kResponseKey]);
-      _tokenCache.updateFrom(resp, client);
-      return client;
+      final accepted = _tokenCache.updateFrom(
+        resp,
+        client,
+        // POST explicitly creates a new client; a GET must return the
+        // client we are pinned to unless it is demonstrably gone
+        allowClientChange: method == HttpMethod.post ||
+            _clientMismatchCount >= _maxClientMismatches,
+      );
+      if (accepted) {
+        _clientMismatchCount = 0;
+        return client;
+      }
+      _clientMismatchCount += 1;
+      logNotice(
+        'Discarded /client response for mismatched client ${client.id} '
+        '(expecting ${_tokenCache.clientId})',
+      );
     }
     return Client.empty;
   }
@@ -1011,7 +1031,9 @@ class Api with Logging {
     final (clientData, responseData) = _extractClientAndResponse(body);
     if (clientData is _JsonObject) {
       final client = Client.fromJson(clientData);
-      _tokenCache.updateFrom(resp, client);
+      if (resp.statusCode == HttpStatus.ok) {
+        _tokenCache.updateFrom(resp, client);
+      }
       return ApiResponse(
         client: client,
         status: resp.statusCode,
@@ -1055,6 +1077,20 @@ class Api with Logging {
     return param;
   }
 
+  // The client token is a rotating credential: a response can invalidate
+  // the token presented by any request still in flight, so requests are
+  // serialised and the authorization header is stamped from the token
+  // cache at send time rather than at call time.
+  Future<http.Response> _queue = Future.value(_emptyResponse);
+
+  static final _emptyResponse = http.Response('', HttpStatus.ok);
+
+  Future<http.Response> _enqueue(Future<http.Response> Function() fn) {
+    final response = _queue.then((_) => fn());
+    _queue = response.catchError((_) => _emptyResponse);
+    return response;
+  }
+
   Future<http.Response> _fetch({
     required String path,
     HttpMethod method = HttpMethod.post,
@@ -1062,7 +1098,7 @@ class Api with Logging {
     _JsonObject? params,
     _JsonObject? nullableParams,
     bool withSession = false,
-  }) async {
+  }) {
     final bodyParams = {
       if (params?.entries case final entries?) //
         for (final MapEntry(:key, :value) in entries) //
@@ -1076,6 +1112,20 @@ class Api with Logging {
       bodyParams: bodyParams,
     );
     final uri = _uri(path, params: queryParams);
+
+    return _enqueue(() => _send(method, uri, headers, bodyParams));
+  }
+
+  Future<http.Response> _send(
+    HttpMethod method,
+    Uri uri,
+    Map<String, String>? headers,
+    _JsonObject bodyParams,
+  ) async {
+    if (headers?.containsKey(HttpHeaders.authorizationHeader) == true &&
+        _tokenCache.hasClientToken) {
+      headers![HttpHeaders.authorizationHeader] = _tokenCache.clientToken;
+    }
 
     return await config.retryOptions.retry(
       () async {
