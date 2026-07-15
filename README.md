@@ -11,7 +11,7 @@
 
 # Clerk Dart and Flutter SDKs
 
-The official [Clerk](https://clerk.com) Flutter/Dart client library.
+Community-maintained [Clerk](https://clerk.com) Flutter and Dart SDKs — provided as-is, not officially supported by Clerk. See [clerk-community](https://github.com/clerk-community) for what that means.
 
 
 * [clerk_auth](./packages/clerk_auth): Dart SDK
