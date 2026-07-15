@@ -17,6 +17,12 @@ The official [Clerk](https://clerk.com) Flutter/Dart client library.
 * [clerk_auth](./packages/clerk_auth): Dart SDK
 * [clerk_flutter](./packages/clerk_flutter): Flutter SDK
 
+### Documentation
+
+Guides and SDK reference live at [docs.page/clerk-community/clerk-sdk-flutter](https://docs.page/clerk-community/clerk-sdk-flutter), rendered by [docs.page](https://docs.page) straight from this repository — the content is the MDX in [`docs/`](./docs/) and the site configuration is [`docs.json`](./docs.json). Edit and open a pull request; merged changes publish automatically with no build step.
+
+To preview changes locally: `npx @docs.page/cli preview`
+
 
 ### License
 

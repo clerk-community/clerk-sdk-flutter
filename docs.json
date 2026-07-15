@@ -9,7 +9,7 @@
     {
       "icon": "github",
       "title": "GitHub",
-      "href": "https://github.com/clerk/clerk-sdk-flutter"
+      "href": "https://github.com/clerk-community/clerk-sdk-flutter"
     },
     {
       "icon": "cube",
@@ -18,7 +18,7 @@
     }
   ],
   "social": {
-    "github": "https://github.com/clerk/clerk-sdk-flutter",
+    "github": "https://github.com/clerk-community/clerk-sdk-flutter",
     "discord": "https://clerk.com/discord"
   },
   "sidebar": [
