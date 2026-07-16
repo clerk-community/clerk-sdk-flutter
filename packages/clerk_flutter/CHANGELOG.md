@@ -1,3 +1,11 @@
+## 0.0.17-beta
+
+* fix: minor fix to new_release tool
+* chore: community org metadata and framing [[#433]](https://github.com/clerk-community/clerk-sdk-flutter/issues/433)
+* test(patrol): sign in with google [[#410]](https://github.com/clerk-community/clerk-sdk-flutter/issues/410)
+* tests: add patrol (#412)
+* feat: client trust [[#419]](https://github.com/clerk-community/clerk-sdk-flutter/issues/419)
+
 ## 0.0.16-beta
 
 * feat(clerk_auth): added immutable to user attribute data [[#406]](https://github.com/clerk-community/clerk-sdk-flutter/issues/406)
