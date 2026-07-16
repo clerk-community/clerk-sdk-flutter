@@ -1,0 +1,247 @@
+---
+title: Configure the SDK
+description: Configure the Clerk Flutter SDK with your publishable key and options.
+---
+
+## Configuration options
+
+`ClerkAuthConfig` is the primary way to configure the Clerk Flutter SDK. It extends the core `AuthConfig` from
+`clerk_auth` and adds Flutter-specific options. Pass it to `ClerkAuth` either directly or via
+`ClerkAuth.materialAppBuilder`.
+
+You can use it to configure:
+
+- **Authentication** — your publishable key, test mode, and session token behavior
+- **Networking** — custom HTTP service, connection timeouts, and retry options
+- **Persistence** — custom persistor for storing session state
+- **Loading UI** — a widget shown while the SDK initializes
+- **Localizations** — translated strings for each supported locale
+- **OAuth / SSO** — redirect URI generation and deep link handling
+- **File caching** — caching of remote assets such as avatars and logos
+- **Telemetry** — endpoint, send period, and opt-out
+
+---
+
+## Class definition
+
+```dart
+class ClerkAuthConfig extends clerk.AuthConfig {
+  ClerkAuthConfig({
+    // From AuthConfig (required)
+    required String publishableKey,
+
+    // From AuthConfig (optional)
+    bool sessionTokenPolling,
+    bool? isTestMode,
+    String? telemetryEndpoint,
+    Duration? telemetryPeriod,
+    Duration? clientRefreshPeriod,
+    HttpService? httpService,
+    Duration? httpConnectionTimeout,
+    RetryOptions retryOptions,
+    String? defaultSessionTokenTemplate,
+    Persistor? persistor,
+    ClerkSdkFlags flags,
+
+    // Flutter-specific
+    Widget? loading,
+    ClerkRedirectUriGenerator? redirectionGenerator,
+    Stream<Uri?>? deepLinkStream,
+    LaunchMode defaultLaunchMode,
+    bool supportsHardwareSecurityKeys,
+    ClerkFileCache? fileCache,
+    ClerkSdkLocalizationsCollection? localizations,
+    ClerkSdkLocalizations? fallbackLocalization,
+    ClerkSdkGrammarCollection? grammars,
+    ClerkSdkGrammar? fallbackGrammar,
+  });
+}
+```
+
+---
+
+## Parameters
+
+### `publishableKey`
+
+**Type:** `String`
+
+Your Clerk publishable key from the Clerk Dashboard.
+
+### `loading`
+
+**Type:** `Widget?`
+
+**Default:** A built-in loading spinner.
+
+Widget displayed while the SDK is initializing. Pass `null` to defer the first frame entirely (the OS splash screen
+stays visible) rather than showing a spinner.
+
+### `sessionTokenPolling`
+
+**Type:** `bool`
+
+**Default:** `true`
+
+Whether the SDK should regularly poll for a refreshed session token in the background. Disable this if you want to
+manage token refresh yourself.
+
+### `defaultSessionTokenTemplate`
+
+**Type:** `String?`
+
+**Default:** `null`
+
+The name of a JWT template to use by default when fetching session tokens. When `null`, the default Clerk session
+token is used.
+
+### `persistor`
+
+**Type:** `Persistor?`
+
+**Default:** A file-based caching persistor.
+
+Override the default persistor used to store session state between app launches. Implement `clerk.Persistor` to
+provide your own storage backend.
+
+### `httpService`
+
+**Type:** `HttpService?`
+
+**Default:** `DefaultHttpService`
+
+Override the HTTP client used for all Clerk API calls. Useful for injecting mock clients in tests or adding custom
+interceptors.
+
+### `httpConnectionTimeout`
+
+**Type:** `Duration?`
+
+**Default:** `Duration(milliseconds: 500)`
+
+How long the SDK waits for an HTTP connection before timing out during a connectivity check.
+
+### `retryOptions`
+
+**Type:** `RetryOptions`
+
+**Default:** `RetryOptions()` (from the `retry` package)
+
+Controls retry behavior for failed API requests — number of attempts, delays, and back-off strategy.
+
+### `clientRefreshPeriod`
+
+**Type:** `Duration?`
+
+**Default:** `Duration(milliseconds: 9700)` (\~10 s)
+
+How often the SDK polls to refresh the client object. Set to `Duration.zero` to disable polling entirely.
+
+### `telemetryEndpoint`
+
+**Type:** `String?`
+
+**Default:** `'https://clerk-telemetry.com/v1/event'`
+
+The URL telemetry data is sent to.
+
+### `telemetryPeriod`
+
+**Type:** `Duration?`
+
+**Default:** `Duration(milliseconds: 29300)` (\~30 s)
+
+How often telemetry data is sent. Set to `Duration.zero` to disable telemetry sending.
+
+### `isTestMode`
+
+**Type:** `bool?`
+
+**Default:** `false`
+
+Enables test mode. Usually inferred automatically from the publishable key prefix.
+
+### `flags`
+
+**Type:** `ClerkSdkFlags`
+
+**Default:** `ClerkSdkFlags()`
+
+Advanced feature flags that affect SDK behavior. Not needed for typical usage.
+
+### `redirectionGenerator`
+
+**Type:** `ClerkRedirectUriGenerator?`
+
+**Default:** `null`
+
+A function (`Uri? Function(BuildContext, clerk.Strategy)`) that returns the redirect URI the SDK should use after an
+OAuth / SSO flow completes. Called with the current `BuildContext` and the strategy being used.
+
+### `deepLinkStream`
+
+**Type:** `Stream<Uri?>?`
+
+**Default:** `null`
+
+A stream of incoming deep links. The SDK listens to this stream to detect OAuth / SSO callbacks directed back into
+the app.
+
+### `defaultLaunchMode`
+
+**Type:** `LaunchMode`
+
+**Default:** `LaunchMode.externalApplication`
+
+The `url_launcher` launch mode used when opening OAuth / SSO URLs.
+
+### `supportsHardwareSecurityKeys`
+
+**Type:** `bool`
+
+**Default:** `true`
+
+Whether the device supports hardware security keys (passkeys). Set to `false` when running on an iOS simulator,
+which does not support the platform API.
+
+### `fileCache`
+
+**Type:** `ClerkFileCache?`
+
+**Default:** A caching implementation backed by the app documents directory.
+
+Override the cache used to fetch and store remote assets such as avatars and organization logos.
+
+### `localizations`
+
+**Type:** `ClerkSdkLocalizationsCollection?`
+
+**Default:** `{'en': ClerkSdkLocalizationsEn()}`
+
+A map (`Map<String, ClerkSdkLocalizations>`) of IETF language tags to localizations objects. The SDK picks the best
+match for the device locale, falling back to `fallbackLocalization`.
+
+### `fallbackLocalization`
+
+**Type:** `ClerkSdkLocalizations?`
+
+**Default:** `ClerkSdkLocalizationsEn()`
+
+The localization used when no entry in `localizations` matches the device locale.
+
+### `grammars`
+
+**Type:** `ClerkSdkGrammarCollection?`
+
+**Default:** `{'en': ClerkSdkGrammarEn()}`
+
+A map (`Map<String, ClerkSdkGrammar>`) of language codes to grammar helpers used for locale-aware string formatting
+(e.g. pluralization).
+
+### `fallbackGrammar`
+
+**Type:** `ClerkSdkGrammar?`
+
+**Default:** `ClerkSdkGrammarEn()`
+
+The grammar used when no entry in `grammars` matches the device locale.

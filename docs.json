@@ -1,0 +1,62 @@
+{
+  "$schema": "https://docs.page/schema.json",
+  "name": "Clerk Flutter SDK",
+  "description": "Add authentication and user management to your Flutter app with Clerk.",
+  "theme": {
+    "primary": "#6C47FF"
+  },
+  "anchors": [
+    {
+      "icon": "github",
+      "title": "GitHub",
+      "href": "https://github.com/clerk-community/clerk-sdk-flutter"
+    },
+    {
+      "icon": "cube",
+      "title": "pub.dev",
+      "href": "https://pub.dev/packages/clerk_flutter"
+    }
+  ],
+  "social": {
+    "github": "https://github.com/clerk-community/clerk-sdk-flutter",
+    "discord": "https://clerk.com/discord"
+  },
+  "sidebar": [
+    {
+      "group": "Getting started",
+      "pages": [
+        { "title": "Welcome", "href": "/" },
+        { "title": "Flutter Quickstart", "href": "/getting-started/quickstart" },
+        { "title": "Install the SDK", "href": "/getting-started/installation" },
+        { "title": "Configure the SDK", "href": "/getting-started/configuration" },
+        { "title": "ClerkAuth", "href": "/getting-started/clerk-auth" }
+      ]
+    },
+    {
+      "group": "SDK reference",
+      "pages": [
+        { "title": "Authentication flows", "href": "/reference/authentication-flows" },
+        { "title": "User management", "href": "/reference/user-management" },
+        { "title": "Organization management", "href": "/reference/organization-management" },
+        { "title": "Full API reference", "href": "https://pub.dev/documentation/clerk_flutter/latest/" }
+      ]
+    },
+    {
+      "group": "Clerk UI",
+      "pages": [
+        { "title": "Overview", "href": "/ui/overview" },
+        { "title": "ClerkAuthentication", "href": "/ui/clerk-authentication" },
+        { "title": "ClerkUserButton", "href": "/ui/clerk-user-button" },
+        { "title": "Theming", "href": "/ui/theming" }
+      ]
+    },
+    {
+      "group": "Guides",
+      "pages": [
+        { "title": "Sign in with Apple", "href": "/guides/sign-in-with-apple" },
+        { "title": "Sign in with Google", "href": "/guides/sign-in-with-google" },
+        { "title": "Deploy to production", "href": "/guides/deploy-to-production" }
+      ]
+    }
+  ]
+}

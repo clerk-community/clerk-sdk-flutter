@@ -1,0 +1,111 @@
+---
+title: Flutter Quickstart
+description: Add authentication and user management to your Flutter app with Clerk.
+---
+
+<Info>
+  **Before you start:**
+
+  - [Set up a Clerk application](https://clerk.com/docs/getting-started/quickstart/setup-clerk)
+
+  **Example repository:** [Flutter Clerk Example App](https://github.com/clerk-community/clerk-sdk-flutter/tree/main/packages/clerk_flutter/example)
+</Info>
+
+<Steps>
+<Step title="Enable Native API">
+
+In the Clerk Dashboard, navigate to the [**Native applications**](https://dashboard.clerk.com/~/native-applications) page and ensure that the Native API is enabled. This is required to integrate Clerk in your native application.
+</Step>
+
+<Step title="Create a new Flutter app">
+
+1. If you don't already have a Flutter app, first follow the [Create a new Flutter app](https://docs.flutter.dev/reference/create-new-app) guide in the Flutter Docs. This will guide you step-by-step on how to create a Flutter app in your preferred development environment.
+
+1. Add `clerk_flutter` and `clerk_auth` to your Flutter app.
+
+   ```sh title="Terminal"
+   flutter pub add clerk_flutter clerk_auth
+   ```
+
+1. The Clerk packages can now be imported into your Flutter app.
+</Step>
+
+<Step title="Configure the AndroidManifest.xml file">
+
+<Info>
+This step is only necessary if you want to run your Flutter app on Android devices. If you won't release an Android build of your Flutter app, skip this section.
+</Info>
+
+In `android/app/src/main/AndroidManifest.xml`, inside the root `<manifest>` tag, add the following line to enable internet permission when running your Flutter app on Android.
+
+```xml
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+    ...
+</manifest>
+```
+</Step>
+
+<Step title="Wire up ClerkAuth">
+
+`ClerkAuth` is the root control widget that initializes the Clerk authentication system. Wrap your `MaterialApp` with it and pass your publishable key via `ClerkAuthConfig`.
+
+The following example demonstrates how to wrap your `MaterialApp` with `ClerkAuth` and use `ClerkAuthBuilder` to render different content depending on whether a user is signed in or out. `ClerkAuthentication` is passed as the `signedOutBuilder` to display Clerk's prebuilt sign-in and sign-up UI.
+
+```dart title="lib/main.dart"
+import 'package:clerk_flutter/clerk_flutter.dart';
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(
+    ClerkAuth(
+      config: ClerkAuthConfig(publishableKey: 'YOUR_PUBLISHABLE_KEY'),
+      child: MaterialApp(
+        home: Scaffold(
+          appBar: AppBar(title: const Text('My App')),
+          body: SafeArea(
+            child: ClerkErrorListener(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: ClerkAuthBuilder(
+                  signedInBuilder: (context, authState) {
+                    return const Center(child: Text('You are signed in!'));
+                  },
+                  signedOutBuilder: (context, authState) {
+                    return const ClerkAuthentication();
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+```
+</Step>
+
+<Step title="Run your application">
+
+Now run your Flutter app.
+</Step>
+
+<Step title="Create your first user">
+
+Once the app launches successfully, the `ClerkAuth` widget opens, allowing you to sign up or sign in to create your first user.
+</Step>
+</Steps>
+
+## Next steps
+
+Learn more about Clerk widgets, how to customize them, and explore the Clerk Flutter SDK using the following guides.
+
+<CardGroup cols={2}>
+  <Card title="Prebuilt widgets" href="/ui/overview">Learn how to quickly add authentication to your app using Clerk's suite of widgets.</Card>
+  <Card title="Customize Clerk" href="/ui/theming">Learn how to customize Clerk widgets using `ClerkThemeExtension`.</Card>
+  <Card title="Add Sign in with Google" href="/guides/sign-in-with-google">Learn how to add Sign in with Google to your Flutter app.</Card>
+  <Card title="Add Sign in with Apple" href="/guides/sign-in-with-apple">Learn how to add Sign in with Apple to your Flutter app.</Card>
+  <Card title="User management" href="/reference/user-management">Learn how to manage users in your Flutter app.</Card>
+  <Card title="Clerk Flutter SDK Reference" href="https://pub.dev/documentation/clerk_flutter/latest/">Learn about the Clerk Flutter SDK and how to integrate it into your app.</Card>
+</CardGroup>
