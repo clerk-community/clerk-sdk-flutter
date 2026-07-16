@@ -1,3 +1,8 @@
+## 0.0.17-beta
+
+* fix: minor fix to new_release tool
+* chore: community org metadata and framing [[#433]](https://github.com/clerk-community/clerk-sdk-flutter/issues/433)
+
 ## 0.0.16-beta
 
 * chore: bump `clerk_backend_api` to `0.0.16-beta`
