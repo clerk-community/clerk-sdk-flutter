@@ -1,13 +1,17 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as path;
+
 // Publish order: least-dependent first.
 const _packages = ['clerk_backend_api', 'clerk_auth', 'clerk_flutter'];
-const _packagePaths = {
+const _packagePaths = <String, String>{
   'clerk_backend_api': 'packages/clerk_backend_api',
   'clerk_auth': 'packages/clerk_auth',
   'clerk_flutter': 'packages/clerk_flutter',
 };
+
+const _repoUrl = 'https://github.com/clerk-community/clerk-sdk-flutter';
 
 Future<void> main(List<String> args) async {
   if (args.isEmpty || args.contains('--help') || args.contains('-h')) {
@@ -38,19 +42,31 @@ Future<void> main(List<String> args) async {
 
   // 1. Update pubspec.yaml for all packages.
   String? newVersion;
-  for (final pkg in _packages) {
-    final file = File('$root/${_packagePaths[pkg]!}/pubspec.yaml');
-    final content = await file.readAsString();
+  final paths = <String, String>{
+    ..._packagePaths,
+    'clerk_sdk': './',
+  };
+  for (final pkg in paths.keys) {
+    final file = File(path.join(root, paths[pkg]!, 'pubspec.yaml'));
+    var content = await file.readAsString();
     final current = _extractVersion(content);
     final bumped = _bumpVersion(current, bumpType, preId);
     newVersion ??= bumped;
 
-    await file.writeAsString(
-      content.replaceFirst(
-        RegExp(r'^version: .+$', multiLine: true),
-        'version: $bumped',
-      ),
+    content = content.replaceFirst(
+      RegExp(r'^version: .+$', multiLine: true),
+      'version: $bumped',
     );
+
+    // Pin clerk_auth to the exact new version in clerk_flutter (no caret).
+    if (pkg == 'clerk_flutter') {
+      content = content.replaceFirstMapped(
+        RegExp(r'^(\s+)clerk_auth:\s*.+$', multiLine: true),
+        (m) => '${m.group(1)}clerk_auth: $bumped',
+      );
+    }
+
+    await file.writeAsString(content);
     stdout.writeln('  $pkg: $current → $bumped');
   }
 
@@ -62,7 +78,7 @@ Future<void> main(List<String> args) async {
         jsonDecode(await openapiConfig.readAsString()) as Map<String, dynamic>;
     json['pubVersion'] = newVersion;
     await openapiConfig.writeAsString(
-        '${const JsonEncoder.withIndent('    ').convert(json)}\n');
+        '${const JsonEncoder.withIndent('  ').convert(json)}\n');
     stdout.writeln('  openapi_generator/openapi-generator-config.json');
   }
 
@@ -183,14 +199,16 @@ Future<void> _generateChangelog(
       changelogFile.existsSync() ? await changelogFile.readAsString() : '';
 
   final section =
-      '## $newVersion\n\n${entries.map((e) => ' - $e').join('\n')}\n\n';
+      '## $newVersion\n\n${entries.map((e) => '* $e').join('\n')}\n\n';
   await changelogFile.writeAsString(section + existing);
   stdout.writeln(
       '  $pkgName: ${entries.length} entr${entries.length == 1 ? 'y' : 'ies'}');
 }
 
-// Converts a commit message to the Melos-style bold-label format:
-//   fix(clerk_auth): fix something (#42) → **FIX**(clerk_auth): fix something (#42).
+// Converts a commit message to the lowercase conventional-commit format used
+// prior to 0.0.16-beta, linking the trailing PR/issue ref to GitHub:
+//   fix(clerk_auth): fix something (#42) →
+//     fix(clerk_auth): fix something [[#42]](https://.../issues/42)
 String _formatEntry(String message, String pkgName) {
   final re = RegExp(
     r'^(feat|fix|docs|chore|refactor|test|style|perf|ci|build|revert)'
@@ -199,26 +217,26 @@ String _formatEntry(String message, String pkgName) {
   final m = re.firstMatch(message);
   if (m == null) return message;
 
-  final type = m.group(1)!.toUpperCase();
-  final scope = m.group(3) ?? pkgName;
+  final type = m.group(1)!.toLowerCase();
+  final scope = m.group(3);
   var desc = m.group(4)!;
 
-  // Normalise bare #NNN → (#NNN).
-  final bareRef = RegExp(r'\s*#(\d+)$');
-  final parenRef = RegExp(r'\s*\(#\d+\)$');
-  if (!parenRef.hasMatch(desc)) {
-    final bare = bareRef.firstMatch(desc);
-    if (bare != null) {
-      desc = '${desc.substring(0, bare.start)} (#${bare.group(1)})';
-    }
+  // Normalise trailing (#NNN)/[#NNN]/bare #NNN → linked [#NNN].
+  final trailingRef = RegExp(r'\s*[\(\[]?#(\d+)[\)\]]?\.?$');
+  final refMatch = trailingRef.firstMatch(desc);
+  if (refMatch != null) {
+    final ref = refMatch.group(1)!;
+    final head = desc.substring(0, refMatch.start).trimRight();
+    desc = '$head [[#$ref]]($_repoUrl/issues/$ref)';
   }
 
-  if (!desc.endsWith('.')) desc = '$desc.';
-  return '**$type**($scope): $desc';
+  final prefix = scope != null ? '$type($scope)' : type;
+  return '$prefix: $desc';
 }
 
 Future<void> _commit(String root, String version) async {
   final filesToStage = [
+    'pubspec.yaml',
     'packages/clerk_auth/pubspec.yaml',
     'packages/clerk_auth/CHANGELOG.md',
     'packages/clerk_auth/lib/src/_version.dart',

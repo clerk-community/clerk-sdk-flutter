@@ -1,6 +1,6 @@
 ## 0.0.16-beta
 
- - Bump "clerk_backend_api" to `0.0.16-beta`.
+* chore: bump `clerk_backend_api` to `0.0.16-beta`
 
 ## 0.0.15-beta
 

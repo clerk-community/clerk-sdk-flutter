@@ -73,13 +73,13 @@ The workflow uses OIDC-based publishing — no stored pub.dev credentials are re
 
 ## Changelog format
 
-Entries follow the Melos bold-label convention:
+Entries use lowercase conventional-commit prefixes with a `[#N]` PR/issue reference rendered as a GitHub link:
 
 ```
 ## 0.0.17-beta
 
- - **FEAT**(clerk_auth): add passkey improvements (#420).
- - **FIX**(clerk_auth): handle offline token refresh (#421).
+* feat(clerk_auth): add passkey improvements [[#420]](https://github.com/clerk-community/clerk-sdk-flutter/issues/420)
+* fix: handle offline token refresh [[#421]](https://github.com/clerk-community/clerk-sdk-flutter/issues/421)
 ```
 
-Commits that follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, etc.) are mapped to bold labels. Other commits are included as plain bullets. Only commits that touch each package's directory are included in that package's changelog.
+Commits that follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, etc.) keep their type and optional scope. Other commits are included as plain bullets. Only commits that touch each package's directory are included in that package's changelog.
