@@ -184,15 +184,16 @@ Future<void> _generateChangelog(
       .where((l) => l.isNotEmpty)
       .toList();
 
-  if (commits.isEmpty) {
-    stdout.writeln('  $pkgName: no new commits — CHANGELOG unchanged');
-    return;
-  }
-
-  final entries = commits.map((line) {
-    final msg = line.replaceFirst(RegExp(r'^[0-9a-f]{6,}\s+'), '');
-    return _formatEntry(msg, pkgName);
-  }).toList();
+  // A package with no commits of its own still needs an entry for the new
+  // version: pub.dev's publish dry-run warns when CHANGELOG.md doesn't
+  // mention the version being published, and the publish workflow fails
+  // its dry-run step on any warning.
+  final entries = commits.isEmpty
+      ? ['chore: bump `$pkgName` to `$newVersion`']
+      : commits.map((line) {
+          final msg = line.replaceFirst(RegExp(r'^[0-9a-f]{6,}\s+'), '');
+          return _formatEntry(msg, pkgName);
+        }).toList();
 
   final changelogFile = File('$root/$pkgPath/CHANGELOG.md');
   final existing =
