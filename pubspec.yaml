@@ -1,5 +1,5 @@
 name: clerk_sdk
-version: 0.0.17-beta
+version: 0.0.18-beta
 description: >
   Clerk SDK containing all packages that define use of Clerk 
   services for Dart and Flutter code.

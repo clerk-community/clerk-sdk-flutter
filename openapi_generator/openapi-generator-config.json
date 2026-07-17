@@ -3,7 +3,7 @@
   "input-spec": "https://raw.githubusercontent.com/clerk/openapi-specs/refs/heads/main/bapi/2025-11-10.yml",
   "pubName": "clerk_backend_api",
   "pubDescription": "The Clerk REST Backend API. Version 2025-11-10.",
-  "pubVersion": "0.0.17-beta",
+  "pubVersion": "0.0.18-beta",
   "pubHomepage": "https://clerk.com/docs",
   "pubRepository": "https://github.com/clerk/clerk-sdk-flutter/tree/main/packages/clerk_backend_api"
 }
