@@ -138,12 +138,18 @@ Session createTestSession({
 }
 
 /// Creates a test Client with sensible defaults
+///
+/// Note: the live API does not advance `updated_at` when a sign-in is
+/// created or progresses. Pass an explicit [updatedAt] shared between
+/// consecutive clients to model flows faithfully.
 Client createTestClient({
   String? id = 'client_test_123',
   List<Session>? sessions,
   String? lastActiveSessionId,
   SignIn? signIn,
   SignUp? signUp,
+  DateTime? updatedAt,
+  DateTime? createdAt,
 }) {
   final testSessions = sessions ?? [];
   return Client(
@@ -153,8 +159,8 @@ Client createTestClient({
         (testSessions.isNotEmpty ? testSessions.first.id : null),
     signIn: signIn,
     signUp: signUp,
-    updatedAt: DateTime.now(),
-    createdAt: DateTime.now(),
+    updatedAt: updatedAt ?? DateTime.now(),
+    createdAt: createdAt ?? DateTime.now(),
   );
 }
 

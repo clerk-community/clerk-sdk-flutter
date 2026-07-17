@@ -100,11 +100,23 @@ class ClerkAuthState extends clerk.Auth with ChangeNotifier {
     }
   }
 
+  // Guard 2: while a client refresh is resolving, reject any client that is
+  // not strictly newer than the one we hold, so a stale refresh response
+  // cannot overwrite state written by a concurrent auth operation.
+  //
+  // This must only screen refreshes: the API does not advance
+  // `client.updated_at` when a sign-in or sign-up progresses, so applying
+  // the check to every write would drop the responses that move an auth
+  // flow forward.
+  bool _isRefreshingClient = false;
+
   @override
   set client(clerk.Client newClient) {
-    final newTs = newClient.updatedAt.microsecondsSinceEpoch;
-    final currentTs = client.updatedAt.microsecondsSinceEpoch;
-    if (newTs > 0 && currentTs > 0 && newTs <= currentTs) return;
+    if (_isRefreshingClient) {
+      final newTs = newClient.updatedAt.microsecondsSinceEpoch;
+      final currentTs = client.updatedAt.microsecondsSinceEpoch;
+      if (newTs > 0 && currentTs > 0 && newTs <= currentTs) return;
+    }
     super.client = newClient;
   }
 
@@ -114,7 +126,12 @@ class ClerkAuthState extends clerk.Auth with ChangeNotifier {
   @override
   Future<void> refreshClient() async {
     if (_updateLock.isLocked) return;
-    await super.refreshClient();
+    _isRefreshingClient = true;
+    try {
+      await super.refreshClient();
+    } finally {
+      _isRefreshingClient = false;
+    }
   }
 
   @override
