@@ -13,6 +13,7 @@ class TestClerkAuthConfig extends ClerkAuthConfig {
   /// Create a test configuration with sensible defaults for testing
   TestClerkAuthConfig({
     super.publishableKey = 'pk_test_dGVzdC5jbGVyay5kZXYk',
+    super.deepLinkStream,
     TestHttpService? httpService,
     Client? initialClient,
     Environment? initialEnvironment,
