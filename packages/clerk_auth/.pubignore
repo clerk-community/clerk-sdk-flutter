@@ -15,3 +15,6 @@ build.yaml
 # Test environment
 .env.test
 test/_responses
+
+# Persistor file — contains dev credentials; must never be published
+clerk_sdk.json
