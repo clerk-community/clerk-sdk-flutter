@@ -110,6 +110,45 @@ User createTestUser({
   );
 }
 
+/// Creates a test Environment with sensible defaults
+///
+/// A non-empty [Environment] is needed for the auth panels to render:
+/// they return an empty widget when `authState.isNotAvailable`, and the
+/// form fields they display are driven by the enabled attributes in
+/// `env.user.attributes` rather than by the sign-up/sign-in object.
+/// `ClerkSignInPanel` additionally requires at least one identification
+/// strategy in `env.config` before it renders anything.
+Environment createTestEnvironment({
+  List<UserAttribute> requiredAttributes = const [],
+  List<UserAttribute> optionalAttributes = const [],
+  List<Strategy> identificationStrategies = const [],
+  bool legalConsentEnabled = false,
+}) {
+  UserAttributeData dataFor(UserAttribute attr, {required bool isRequired}) {
+    return UserAttributeData(
+      isRequired: isRequired,
+      verifications: switch (attr) {
+        UserAttribute.emailAddress => const [Strategy.emailCode],
+        UserAttribute.phoneNumber => const [Strategy.phoneCode],
+        _ => const [],
+      },
+    );
+  }
+
+  return Environment(
+    config: Config(identificationStrategies: identificationStrategies),
+    user: UserSettings(
+      attributes: {
+        for (final attr in requiredAttributes) //
+          attr: dataFor(attr, isRequired: true),
+        for (final attr in optionalAttributes) //
+          attr: dataFor(attr, isRequired: false),
+      },
+      signUp: SignUpSettings(legalConsentEnabled: legalConsentEnabled),
+    ),
+  );
+}
+
 /// Creates a test Session with sensible defaults
 Session createTestSession({
   String id = 'sess_test_123',
