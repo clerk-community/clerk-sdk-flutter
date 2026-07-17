@@ -71,7 +71,8 @@ Future<void> main(List<String> args) async {
     }
   }
 
-  stdout.writeln('\nDone! Tags pushed — pub.dev publish workflow will start shortly.');
+  stdout.writeln(
+      '\nDone! Tags pushed — pub.dev publish workflow will start shortly.');
   for (final pkg in _packages) {
     stdout.writeln('  $pkg-v$version');
   }

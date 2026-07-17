@@ -269,7 +269,7 @@ class Strategy {
   bool get isEnterpriseSSO => this == enterpriseSSO;
 
   /// is SSO?
-  bool get isSSO => name == _oauth || isEnterpriseSSO;
+  bool get isSSO => name == _oauth || isEnterpriseSSO || this == saml;
 
   /// requires redirect?
   bool get requiresRedirect =>
