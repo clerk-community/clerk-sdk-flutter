@@ -50,15 +50,25 @@ Future<void> main(List<String> args) async {
   }
   await _tag('v$version', 'Release v$version', root);
 
+  // GitHub creates no push event when more than three tags arrive in a
+  // single push, so pushing all four tags via `--tags` never triggers the
+  // publish workflow. Push the package tags first, then the trigger tag on
+  // its own — its push event starts the workflow with all tags in place.
   stdout.writeln('\nPushing tags...');
-  final pushResult = await Process.run(
-    'git',
-    ['push', 'origin', '--tags'],
-    workingDirectory: root,
-  );
-  if (pushResult.exitCode != 0) {
-    stderr.writeln('git push --tags failed:\n${pushResult.stderr}');
-    exit(1);
+  final pushes = [
+    ['push', 'origin', for (final pkg in _packages) '$pkg-v$version'],
+    ['push', 'origin', 'v$version'],
+  ];
+  for (final args in pushes) {
+    final pushResult = await Process.run(
+      'git',
+      args,
+      workingDirectory: root,
+    );
+    if (pushResult.exitCode != 0) {
+      stderr.writeln('git ${args.join(' ')} failed:\n${pushResult.stderr}');
+      exit(1);
+    }
   }
 
   stdout.writeln('\nDone! Tags pushed — pub.dev publish workflow will start shortly.');
