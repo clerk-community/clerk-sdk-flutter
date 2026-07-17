@@ -1,3 +1,7 @@
+## 0.0.18-beta
+
+* fix: sign in continue does nothing [[#437]](https://github.com/clerk-community/clerk-sdk-flutter/issues/437)
+
 ## 0.0.17-beta
 
 * fix: minor fix to new_release tool

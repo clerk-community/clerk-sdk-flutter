@@ -1,3 +1,7 @@
+## 0.0.18-beta
+
+* chore: bump `clerk_auth` to `0.0.18-beta`
+
 ## 0.0.17-beta
 
 * fix: minor fix to new_release tool
