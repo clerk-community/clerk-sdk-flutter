@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ "main" ]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Cancel superseded runs on PR branches, but let runs on main complete.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   pr_check:
     name: PR Check Build
@@ -68,10 +73,101 @@ jobs:
         run: flutter test --file-reporter=json:../../reports/clerk_flutter.json
         working-directory: packages/clerk_flutter
 
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        if: always()                  # upload reports even if tests failed
+        with:
+          name: reports-unit
+          path: reports/*.json
+
+  integration_test:
+    name: Integration Tests (iOS Simulator)
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repo (self)
+        uses: actions/checkout@v4
+
+      - name: Install flutter
+        uses: flutter-actions/setup-flutter@v4
+        with:
+          version: '3.41.9'
+
+      - name: 'Install tools: melos and fvm'
+        run: dart pub global activate melos && dart pub global activate fvm
+
+      - name: Install FVM
+        run: fvm install
+
+      - name: Install top-level dependencies
+        run: dart pub get
+
+      - name: Run melos
+        run: melos bs && melos run get
+
+      - name: Boot iPhone simulator
+        id: simulator
+        run: |
+          UDID=$(xcrun simctl list devices available --json \
+            | jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name | startswith("iPhone"))] | last | .udid')
+          if [ -z "$UDID" ] || [ "$UDID" = "null" ]; then
+            echo "No available iPhone simulator found" >&2
+            xcrun simctl list devices available
+            exit 1
+          fi
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Run integration tests in clerk_flutter_example
+        run: melos run test:integration -- -d ${{ steps.simulator.outputs.udid }} --file-reporter=json:$GITHUB_WORKSPACE/reports/clerk_flutter_integration.json
+
+      - name: Upload test reports
+        uses: actions/upload-artifact@v4
+        if: always()                  # upload reports even if tests failed
+        with:
+          name: reports-integration
+          path: reports/*.json
+
+  test_report:
+    name: Test Report
+    runs-on: ubuntu-latest
+    needs: [ pr_check, integration_test ]
+    if: ${{ !cancelled() }}           # report even if a test job failed
+    permissions:
+      contents: read
+      checks: write                   # dorny/test-reporter creates a check run
+      pull-requests: write            # sticky comment on the PR
+
+    steps:
+      - name: Checkout repo (self)
+        uses: actions/checkout@v4
+
+      - name: Download test reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: reports-*
+          merge-multiple: true
+          path: reports
+
       - name: Test Report
         uses: dorny/test-reporter@v1
-        if: success() || failure()    # run this step even if previous step failed
         with:
           name: 'Test Report'         # Name of the check run which will be created
           path: reports/*.json        # Path to test results
           reporter: flutter-json      # Format of test results
+
+      - name: Install dart
+        uses: dart-lang/setup-dart@v1
+        if: ${{ !cancelled() }}       # comment even if tests failed
+
+      - name: Generate test summary comment
+        if: ${{ !cancelled() }}
+        run: dart .github/scripts/test_report_comment.dart reports test_summary_comment.md
+
+      - name: Post test summary comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        with:
+          header: test-results
+          path: test_summary_comment.md
