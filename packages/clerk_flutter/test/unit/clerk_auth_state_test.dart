@@ -528,6 +528,130 @@ void main() {
           authState.terminate();
         },
       );
+
+      // Regression test for the oAuth handoff race: the completion of an
+      // SSO flow rotates the client token, so a refresh racing it presents
+      // a superseded token, which the back end answers with a freshly
+      // minted session-less client — different id, NEWER timestamp, so the
+      // timestamp guard alone does not block it.
+      test(
+        'refresh resolving to a freshly minted client must not sign out',
+        () async {
+          final signedInClient = createSignedInClient();
+          final mintedClient = clerk.Client(
+            id: 'client_minted',
+            sessions: const [],
+            updatedAt:
+                signedInClient.updatedAt.add(const Duration(milliseconds: 100)),
+            createdAt:
+                signedInClient.updatedAt.add(const Duration(milliseconds: 100)),
+          );
+
+          final authState = await ClerkAuthState.create(
+            config: TestClerkAuthConfig(
+              httpService: _StaleRefreshHttpService(
+                initialClient: signedInClient,
+                staleClient: mintedClient,
+              ),
+            ),
+          );
+
+          expect(authState.user, isNotNull, reason: 'should start signed in');
+
+          await authState.refreshClient();
+
+          expect(authState.client.id, signedInClient.id);
+          expect(
+            authState.user,
+            isNotNull,
+            reason: 'a refresh resolving to a different client must be '
+                'discarded, not adopted',
+          );
+
+          authState.terminate();
+        },
+      );
+
+      test('failed refresh must not sign the user out', () async {
+        final authState = await ClerkAuthState.create(
+          config: TestClerkAuthConfig(
+            httpService: _FailingRefreshHttpService(
+              initialClient: createSignedInClient(),
+            ),
+          ),
+        );
+
+        expect(authState.user, isNotNull, reason: 'should start signed in');
+
+        await authState.refreshClient();
+
+        expect(
+          authState.user,
+          isNotNull,
+          reason: 'a transient refresh failure must not sign the user out',
+        );
+
+        authState.terminate();
+      });
+    });
+
+    group('deep link handling', () {
+      // The deep-link completion of an SSO flow must hold the update lock
+      // so that timer-fired client refreshes are suppressed while the
+      // rotating token nonce exchange is in flight (see Guard 1 on
+      // refreshClient).
+      test('client refresh is suppressed while a deep link is being parsed',
+          () async {
+        final signingInClient = createTestClient(
+          signIn: createTestSignIn(
+            status: clerk.Status.needsFirstFactor,
+            firstFactorVerification: createTestVerification(
+              status: clerk.Status.unverified,
+              strategy: clerk.Strategy.oauthGoogle,
+            ),
+          ),
+        );
+
+        final httpService = _SlowSsoHttpService(initialClient: signingInClient);
+        final deepLinks = StreamController<Uri?>();
+
+        final authState = await ClerkAuthState.create(
+          config: TestClerkAuthConfig(
+            httpService: httpService,
+            deepLinkStream: deepLinks.stream,
+          ),
+        );
+
+        deepLinks.add(
+          Uri.parse('clerk://example.com/oauth?rotating_token_nonce=nonce123'),
+        );
+
+        // let the deep link reach parseDeepLink and suspend on the held
+        // sign-in response
+        await Future.delayed(const Duration(milliseconds: 20));
+        expect(httpService.signInRequested, isTrue,
+            reason: 'nonce exchange should be in flight');
+
+        httpService.clientGetCount = 0;
+        await authState.refreshClient();
+        expect(
+          httpService.clientGetCount,
+          0,
+          reason: 'refreshClient must be suppressed while the deep link '
+              'parse holds the update lock',
+        );
+
+        // complete the nonce exchange and confirm the lock is released
+        httpService.releaseSignIn();
+        await Future.delayed(const Duration(milliseconds: 20));
+
+        await authState.refreshClient();
+        expect(httpService.clientGetCount, 1,
+            reason: 'refreshClient should run once the lock is released');
+
+        await deepLinks.close();
+        authState.terminate();
+      });
     });
 
     group('ssoSignIn', () {
@@ -694,6 +818,72 @@ class _StaleRefreshHttpService extends TestHttpService {
         ));
       }
       _initialized = true;
+    }
+    return super.send(method, uri, headers: headers, params: params, body: body);
+  }
+}
+
+class _FailingRefreshHttpService extends TestHttpService {
+  _FailingRefreshHttpService({
+    required clerk.Client initialClient,
+  }) : super(client: initialClient);
+
+  bool _initialized = false;
+
+  @override
+  Future<Response> send(
+    clerk.HttpMethod method,
+    Uri uri, {
+    Map<String, String>? headers,
+    Map<String, dynamic>? params,
+    String? body,
+  }) {
+    if (uri.path.contains('/client')) {
+      if (_initialized) {
+        return Future.value(Response(jsonEncode({'errors': []}), 500));
+      }
+      _initialized = true;
+    }
+    return super.send(method, uri, headers: headers, params: params, body: body);
+  }
+}
+
+/// Holds the response to the SSO nonce exchange open until [releaseSignIn]
+/// is called, and counts `GET /client` requests, so tests can observe what
+/// runs while a deep link is being parsed.
+class _SlowSsoHttpService extends TestHttpService {
+  _SlowSsoHttpService({
+    required clerk.Client initialClient,
+  })  : _client = initialClient,
+        super(client: initialClient);
+
+  final clerk.Client _client;
+  final _signInCompleter = Completer<void>();
+
+  bool signInRequested = false;
+  int clientGetCount = 0;
+
+  void releaseSignIn() => _signInCompleter.complete();
+
+  @override
+  Future<Response> send(
+    clerk.HttpMethod method,
+    Uri uri, {
+    Map<String, String>? headers,
+    Map<String, dynamic>? params,
+    String? body,
+  }) async {
+    if (uri.path.contains('/client/sign_ins')) {
+      signInRequested = true;
+      await _signInCompleter.future;
+      final clientJson = _client.toJson();
+      return Response(
+        jsonEncode({'response': clientJson['sign_in'], 'client': clientJson}),
+        200,
+      );
+    }
+    if (uri.path.endsWith('/client') && method == clerk.HttpMethod.get) {
+      clientGetCount += 1;
     }
     return super.send(method, uri, headers: headers, params: params, body: body);
   }

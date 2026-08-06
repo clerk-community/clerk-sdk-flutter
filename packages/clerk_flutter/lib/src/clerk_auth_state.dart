@@ -75,9 +75,21 @@ class ClerkAuthState extends clerk.Auth with ChangeNotifier {
     _errors.close();
   }
 
-  void _processDeepLink(Uri? link) {
+  // Holds the update lock for the duration of the parse so that
+  // timer-fired client refreshes (see the guard on [refreshClient]) cannot
+  // race the completion of an SSO flow: both would present the same client
+  // token, which the flow's completion rotates, and the refresh response
+  // could otherwise resolve to — and adopt — a freshly minted empty client.
+  Future<void> _processDeepLink(Uri? link) async {
     if (link case Uri link) {
-      parseDeepLink(link);
+      _updateLock.lock();
+      try {
+        await parseDeepLink(link);
+      } finally {
+        if (_updateLock.release()) {
+          update();
+        }
+      }
     }
   }
 
