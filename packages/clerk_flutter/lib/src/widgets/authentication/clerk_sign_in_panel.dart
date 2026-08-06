@@ -87,6 +87,8 @@ class _ClerkSignInPanelState extends State<ClerkSignInPanel>
           ? authState.emailVerificationRedirectUri(context)
           : null;
 
+      bool needsEnterpriseSSO = false;
+
       await authState.safelyCall(
         context,
         () async {
@@ -123,10 +125,7 @@ class _ClerkSignInPanelState extends State<ClerkSignInPanel>
             } else if (signIn.factors case final factors
                 when factors.isNotEmpty) {
               if (factors.any((f) => f.strategy.isEnterpriseSSO)) {
-                await authState.ssoSignIn(
-                  context,
-                  clerk.Strategy.enterpriseSSO,
-                );
+                needsEnterpriseSSO = true;
               } else if (signIn.needsFactor && factors.length == 1) {
                 await authState.attemptSignIn(strategy: factors.first.strategy);
               }
@@ -139,6 +138,14 @@ class _ClerkSignInPanelState extends State<ClerkSignInPanel>
         },
         onError: _onError,
       );
+
+      if (needsEnterpriseSSO && mounted) {
+        await authState.ssoSignIn(
+          context,
+          clerk.Strategy.enterpriseSSO,
+          onError: _onError,
+        );
+      }
     }
   }
 

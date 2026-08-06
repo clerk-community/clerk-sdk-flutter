@@ -159,6 +159,9 @@ void main() {
         expect(Strategy.oauthGoogle.isSSO);
         expect(Strategy.enterpriseSSO.isSSO);
         expect(Strategy.password.isSSO, false);
+        // Bug 421: saml is returned by the server after enterprise_sso round-trip
+        // and must be treated as SSO so parseDeepLink completes sign-in.
+        expect(Strategy.saml.isSSO, isTrue);
       });
     });
 

@@ -24,7 +24,6 @@ import 'sign_in_with_google_common.dart';
 void main() {
   const googleEmail = String.fromEnvironment('GOOGLE_EMAIL');
 
-
   patrolTest(
     'Sign in with Google & sign out',
     platformAutomatorConfig: PlatformAutomatorConfig.fromOptions(
@@ -72,7 +71,8 @@ void main() {
 
       await signOut($);
 
-      await $(googleSocialButtonSelector).waitUntilVisible(timeout: const Duration(seconds: 5));
+      await $(googleSocialButtonSelector)
+          .waitUntilVisible(timeout: const Duration(seconds: 5));
 
       expect(googleSocialButtonSelector, findsOneWidget);
     },

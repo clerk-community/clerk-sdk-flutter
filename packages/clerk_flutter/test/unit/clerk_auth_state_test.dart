@@ -391,7 +391,8 @@ void main() {
     });
 
     group('refreshClient race condition', () {
-      test('stale refreshClient() response overwrites signed-in client', () async {
+      test('stale refreshClient() response overwrites signed-in client',
+          () async {
         final now = DateTime.now();
         final signedInClient = createSignedInClient();
         final staleClient = clerk.Client(
@@ -434,7 +435,8 @@ void main() {
           final staleClient = clerk.Client(
             id: 'client_stale',
             sessions: const [],
-            updatedAt: signedInClient.updatedAt, // same timestamp — `<` does not block
+            updatedAt:
+                signedInClient.updatedAt, // same timestamp — `<` does not block
             createdAt: signedInClient.createdAt,
           );
 
@@ -500,7 +502,8 @@ void main() {
                   lockStarted = true;
                   // Start safelyCall — acquires the lock and suspends at the
                   // completer, keeping the lock held for the rest of the test.
-                  authState.safelyCall(context, () => safelyCallCompleter.future);
+                  authState.safelyCall(
+                      context, () => safelyCallCompleter.future);
                 }
                 return const SizedBox();
               }),
@@ -666,6 +669,127 @@ void main() {
       });
     });
   });
+// Bug 421 — Bug 1: oauthSignIn must forward identifier for enterprise_sso
+  group('oauthSignIn identifier forwarding', () {
+    test(
+      'passes identifier from existing signIn to createSignIn for enterprise_sso',
+      () async {
+        final signIn = createTestSignIn(
+          identifier: 'user@saml-domain.com',
+          status: clerk.Status.needsFirstFactor,
+          // Provide a verification so hasVerification==true and oauthSignIn
+          // skips the prepareSignIn call (which would fail for enterpriseSSO).
+          firstFactorVerification: createTestVerification(
+            strategy: clerk.Strategy.enterpriseSSO,
+            status: clerk.Status.unverified,
+          ),
+        );
+        final client = createTestClient(signIn: signIn);
+        final capturingService = _CapturingHttpService(client: client);
+        final authState = await ClerkAuthState.create(
+          config: TestClerkAuthConfig(httpService: capturingService),
+        );
+
+        await authState.oauthSignIn(
+          strategy: clerk.Strategy.enterpriseSSO,
+          redirect: null,
+        );
+
+        final createSignInCall = capturingService.capturedRequests
+            .where((r) =>
+                r.uri.path.contains('/sign_ins') &&
+                r.method == clerk.HttpMethod.post)
+            .firstOrNull;
+        expect(
+          createSignInCall,
+          isNotNull,
+          reason: 'Expected a POST to /sign_ins',
+        );
+        expect(
+          createSignInCall!.params?['identifier'],
+          'user@saml-domain.com',
+          reason:
+              'enterprise_sso createSignIn must include the identifier so the server can resolve the SAML connection',
+        );
+
+        authState.terminate();
+      },
+    );
+  });
+
+  // Bug 421 — Bug 2: parseDeepLink must complete sign-in when verification strategy is saml
+  group('parseDeepLink saml strategy', () {
+    test(
+      'calls completeOAuthSignIn when firstFactorVerification strategy is saml',
+      () async {
+        final signIn = createTestSignIn(
+          status: clerk.Status.needsFirstFactor,
+          firstFactorVerification: createTestVerification(
+            strategy: clerk.Strategy.saml,
+            status: clerk.Status.unverified,
+          ),
+        );
+        final client = createTestClient(signIn: signIn);
+        final capturingService = _CapturingHttpService(client: client);
+        final authState = await ClerkAuthState.create(
+          config: TestClerkAuthConfig(httpService: capturingService),
+        );
+
+        final uri = Uri.parse(
+          'com.clerk.flutter://callback?rotating_token_nonce=nonce_abc123',
+        );
+        await authState.parseDeepLink(uri);
+
+        final oauthCompletionCall = capturingService.capturedRequests
+            .where((r) =>
+                r.uri.path.contains('/sign_ins/') &&
+                r.method == clerk.HttpMethod.get &&
+                r.uri.queryParameters['rotating_token_nonce'] == 'nonce_abc123')
+            .firstOrNull;
+        expect(
+          oauthCompletionCall,
+          isNotNull,
+          reason:
+              'parseDeepLink must call completeOAuthSignIn (GET /sign_ins/{id}?rotating_token_nonce=...) '
+              'when the verification strategy is saml',
+        );
+
+        authState.terminate();
+      },
+    );
+  });
+}
+
+class _CapturedRequest {
+  _CapturedRequest(this.method, this.uri, this.params);
+
+  final clerk.HttpMethod method;
+  final Uri uri;
+  final Map<String, dynamic>? params;
+}
+
+class _CapturingHttpService extends TestHttpService {
+  _CapturingHttpService({super.client});
+
+  final List<_CapturedRequest> capturedRequests = [];
+
+  @override
+  Future<Response> send(
+    clerk.HttpMethod method,
+    Uri uri, {
+    Map<String, String>? headers,
+    Map<String, dynamic>? params,
+    String? body,
+  }) {
+    capturedRequests.add(_CapturedRequest(method, uri, params));
+    return super.send(
+      method,
+      uri,
+      headers: headers,
+      params: params,
+      body: body,
+    );
+  }
 }
 
 class _StaleRefreshHttpService extends TestHttpService {
@@ -695,7 +819,8 @@ class _StaleRefreshHttpService extends TestHttpService {
       }
       _initialized = true;
     }
-    return super.send(method, uri, headers: headers, params: params, body: body);
+    return super
+        .send(method, uri, headers: headers, params: params, body: body);
   }
 }
 
@@ -724,6 +849,7 @@ class _SsoErrorHttpService extends TestHttpService {
         422,
       ));
     }
-    return super.send(method, uri, headers: headers, params: params, body: body);
+    return super
+        .send(method, uri, headers: headers, params: params, body: body);
   }
 }
