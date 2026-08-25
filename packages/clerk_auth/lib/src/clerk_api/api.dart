@@ -164,9 +164,20 @@ class Api with Logging {
   }
 
   Future<bool> _delete(String path, {bool requiresSessionId = false}) async {
-    _tokenCache.clear();
+    // The cache is cleared *after* the request, not before.
+    //
+    // `_headers` attaches the Authorization header only when the token cache still holds a
+    // client token, and `_queryParams` reads `sessionId` from the same place. Clearing first
+    // therefore sent an unauthenticated DELETE that identified no client and no session: the
+    // back end answered 200 without revoking anything, while the caller discarded its local
+    // state and reported success. Sign-out became a local forget, leaving the session live
+    // until it expired naturally, and `deleteUser` reported deleting an account it had not.
+    //
+    // The clear stays in a `finally` because local credentials must be dropped whether or not
+    // the request succeeds -- a sign-out that fails on the wire must still sign the user out
+    // of this device.
+    final headers = _headers(method: HttpMethod.delete);
     try {
-      final headers = _headers(method: HttpMethod.delete);
       final resp = await _fetch(
         method: HttpMethod.delete,
         path: path,
@@ -180,6 +191,8 @@ class Api with Logging {
       }
     } catch (error, stacktrace) {
       logSevere('Error during DELETE $path', error, stacktrace);
+    } finally {
+      _tokenCache.clear();
     }
 
     return false;
