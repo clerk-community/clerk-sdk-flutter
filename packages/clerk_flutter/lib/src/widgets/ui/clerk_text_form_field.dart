@@ -26,7 +26,24 @@ class ClerkTextFormField extends StatelessWidget {
     this.validator,
     this.trailing,
     this.hint,
+    this.keyboardType,
+    this.autocorrect = true,
+    this.textCapitalization = TextCapitalization.none,
+    this.autofillHints,
   });
+
+  /// The keyboard to present for this field.
+  final TextInputType? keyboardType;
+
+  /// Whether to enable platform autocorrection. Must be `false` for anything
+  /// that is not prose — an email address or username is corrupted by it.
+  final bool autocorrect;
+
+  /// Whether the platform should capitalise input for this field.
+  final TextCapitalization textCapitalization;
+
+  /// Autofill hints, so the platform can offer saved credentials.
+  final List<String>? autofillHints;
 
   /// Report changes back to calling widget
   final ValueChanged<String>? onChanged;
@@ -95,6 +112,10 @@ class ClerkTextFormField extends StatelessWidget {
           focusNode: focusNode,
           inputFormatter: inputFormatter,
           hint: hint,
+          keyboardType: keyboardType,
+          autocorrect: autocorrect,
+          textCapitalization: textCapitalization,
+          autofillHints: autofillHints,
         ),
       ],
     );
@@ -113,6 +134,10 @@ class _TextField extends StatefulWidget {
     this.inputFormatter,
     this.focusNode,
     this.hint,
+    this.keyboardType,
+    this.autocorrect = true,
+    this.textCapitalization = TextCapitalization.none,
+    this.autofillHints,
   });
 
   final ValueChanged<String>? onChanged;
@@ -125,6 +150,10 @@ class _TextField extends StatefulWidget {
   final TextInputFormatter? inputFormatter;
   final String? initial;
   final String? hint;
+  final TextInputType? keyboardType;
+  final bool autocorrect;
+  final TextCapitalization textCapitalization;
+  final List<String>? autofillHints;
 
   List<TextInputFormatter>? get inputFormatters => switch (inputFormatter) {
         TextInputFormatter formatter => [formatter],
@@ -160,6 +189,10 @@ class _TextFieldState extends State<_TextField> {
       ),
       onChanged: widget.onChanged,
       onFieldSubmitted: widget.onSubmit,
+      keyboardType: widget.keyboardType,
+      autocorrect: widget.autocorrect,
+      textCapitalization: widget.textCapitalization,
+      autofillHints: widget.autofillHints,
       obscureText: _obscure,
       obscuringCharacter: '\u25CF' /* Unicode: Black Circle */,
       validator: (text) {

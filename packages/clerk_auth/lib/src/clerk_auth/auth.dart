@@ -550,10 +550,21 @@ class Auth {
       return;
     }
 
-    // Ensure we have a signIn object for the current identifier
+    // Ensure we have a signIn object for the current identifier.
+    //
+    // The comparison is case-insensitive because the back end normalises
+    // identifiers (an email address is stored lower-cased) while the UI sends
+    // back exactly what the user typed. A case-sensitive comparison therefore
+    // treats `Person@example.com` and the stored `person@example.com` as two
+    // different users, discards the in-flight [SignIn] and creates a new one on
+    // every submission -- which re-prepares the first factor, invalidating the
+    // code already sent, and then checks the user's code against a verification
+    // it does not belong to. The result is a permanent `form_code_incorrect`
+    // for anyone whose identifier differs from its normalised form by case.
     if (client.signIn == null ||
         (identifier?.orNullIfEmpty is String &&
-            identifier != client.signIn!.identifier)) {
+            identifier!.toLowerCase() !=
+                client.signIn!.identifier?.toLowerCase())) {
       // if password and identifier been presented, we can immediately attempt
       // a sign in;  if null they will be ignored
       await _api

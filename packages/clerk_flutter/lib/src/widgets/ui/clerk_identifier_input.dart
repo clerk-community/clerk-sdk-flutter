@@ -7,6 +7,7 @@ import 'package:clerk_flutter/src/widgets/ui/clerk_phone_number_form_field.dart'
 import 'package:clerk_flutter/src/widgets/ui/clerk_text_form_field.dart';
 import 'package:clerk_flutter/src/widgets/ui/closeable.dart';
 import 'package:clerk_flutter/src/widgets/ui/common.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:phone_input/phone_input_package.dart';
 
@@ -166,6 +167,20 @@ class _ClerkIdentifierInputState extends State<ClerkIdentifierInput> {
               onChanged: (ident) => _onChanged(Identifier(ident)),
               onSubmit: _onSubmit,
               focusNode: _emailFocusNode,
+              // An email address is not prose. Left to the platform defaults,
+              // iOS autocorrect rewrites a correctly typed address as it is
+              // entered -- capitalising `derek@...` to `Derek@...` because the
+              // local part matches a proper noun in its dictionary. The
+              // identifier then no longer matches its normalised form on the
+              // back end. The hints also let the platform offer saved
+              // credentials, which it cannot do without them.
+              keyboardType: TextInputType.emailAddress,
+              autocorrect: false,
+              textCapitalization: TextCapitalization.none,
+              autofillHints: const [
+                AutofillHints.username,
+                AutofillHints.email,
+              ],
               trailing: hasPhoneStrategies
                   ? _SwapIdentifierButton(
                       strategies: phoneStrategies,
