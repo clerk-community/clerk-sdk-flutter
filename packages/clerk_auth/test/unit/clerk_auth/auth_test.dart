@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io' show HttpHeaders;
 
 import 'package:clerk_auth/clerk_auth.dart';
+import 'package:clerk_auth/src/models/api/external_error.dart';
 
 import '../../test_helpers.dart';
 
@@ -1164,10 +1166,10 @@ void main() {
 
       group('deleteUser', () {
         test('deletes user when allowed', () async {
-          mockHttp.addClientResponse();
+          mockHttp.addAuthenticatedClientWithSessionResponse();
           mockHttp.addEnvironmentResponse();
-          mockHttp.addClientResponse(); // For deleteUser API call
-          mockHttp.addClientResponse(); // For currentClient refresh
+          mockHttp.addEmptyResponse();
+          mockHttp.addClientResponse();
 
           auth = Auth(
             config: TestAuthConfig(
@@ -1181,7 +1183,46 @@ void main() {
           // The mock environment has delete_self: true, so this should work
           await auth.deleteUser();
 
-          expect(mockHttp.calls.length, greaterThanOrEqualTo(3));
+          expect(auth.isSignedIn, false);
+          expect(mockHttp.calls.length, 4);
+          final deleteCall = mockHttp.calls[2];
+          expect(deleteCall.method, HttpMethod.delete);
+          expect(
+            deleteCall.headers?[HttpHeaders.authorizationHeader],
+            'test_client_token',
+          );
+          expect(
+            deleteCall.uri.queryParameters['_clerk_session_id'],
+            'sess_123',
+          );
+          expect(
+            mockHttp.calls.last.headers?[HttpHeaders.authorizationHeader],
+            isNull,
+          );
+
+          auth.terminate();
+        });
+
+        test('keeps the user signed in when deletion fails', () async {
+          mockHttp.addAuthenticatedClientWithSessionResponse();
+          mockHttp.addEnvironmentResponse();
+          mockHttp.addEmptyResponse(statusCode: 500);
+
+          auth = Auth(
+            config: TestAuthConfig(
+              publishableKey: _validPublishableKey,
+              httpService: mockHttp,
+            ),
+          );
+
+          await auth.initialize();
+
+          await expectLater(
+            auth.deleteUser(),
+            throwsA(isA<ExternalError>()),
+          );
+
+          expect(auth.isSignedIn, true);
 
           auth.terminate();
         });
