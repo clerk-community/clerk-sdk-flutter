@@ -105,15 +105,29 @@ void main() {
     });
 
     group('signOut and deleteUser', () {
-      test('signOut returns empty client', () async {
+      test('signOut authenticates the request and clears tokens', () async {
         await api.initialize();
+        mockHttp.addAuthenticatedClientWithSessionResponse();
+        await api.currentClient();
         mockHttp.addEmptyResponse();
 
         final client = await api.signOut();
 
         expect(client.isEmpty, true);
-        expect(mockHttp.calls.first.method, HttpMethod.delete);
-        expect(mockHttp.calls.first.uri.path, contains('/client'));
+        final deleteCall = mockHttp.calls.last;
+        expect(deleteCall.method, HttpMethod.delete);
+        expect(deleteCall.uri.path, contains('/client'));
+        expect(
+          deleteCall.headers?[HttpHeaders.authorizationHeader],
+          'test_client_token',
+        );
+
+        mockHttp.addClientResponse();
+        await api.currentClient();
+        expect(
+          mockHttp.calls.last.headers?[HttpHeaders.authorizationHeader],
+          isNull,
+        );
       });
 
       test('deleteUser authenticates the request before clearing tokens',

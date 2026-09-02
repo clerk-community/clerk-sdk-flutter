@@ -153,7 +153,11 @@ class Api with Logging {
 
   /// Deletes the [User] for the current [Session]
   Future<Client> deleteUser() async {
-    final deleted = await _delete('/me', requiresSessionId: true);
+    final deleted = await _delete(
+      '/me',
+      requiresSessionId: true,
+      clearTokenCache: false,
+    );
     if (!deleted) {
       throw const ExternalError(
         message: 'Unable to delete user',
@@ -166,16 +170,17 @@ class Api with Logging {
 
   /// Deletes the current [Client], thereby signing out all [Session]s
   Future<Client> signOut() async {
-    // Signing out is a local operation too: clear credentials even when the
-    // network request cannot reach Clerk.
-    _tokenCache.clear();
     await _delete('/client');
     return Client.empty;
   }
 
-  Future<bool> _delete(String path, {bool requiresSessionId = false}) async {
+  Future<bool> _delete(
+    String path, {
+    bool requiresSessionId = false,
+    bool clearTokenCache = true,
+  }) async {
+    final headers = _headers(method: HttpMethod.delete);
     try {
-      final headers = _headers(method: HttpMethod.delete);
       final resp = await _fetch(
         method: HttpMethod.delete,
         path: path,
@@ -189,6 +194,8 @@ class Api with Logging {
       }
     } catch (error, stacktrace) {
       logSevere('Error during DELETE $path', error, stacktrace);
+    } finally {
+      if (clearTokenCache) _tokenCache.clear();
     }
 
     return false;
