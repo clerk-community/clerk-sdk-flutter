@@ -222,123 +222,125 @@ class _ClerkSignInPanelState extends State<ClerkSignInPanel>
       _reset(authState);
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Identifier input
-        Openable(
-          key: const Key('identifierInput'),
-          open: showIdentifierInput,
-          builder: (context) => ClerkIdentifierInput(
-            initialValue: _identifier,
-            strategies: env.identificationStrategies.toList(),
-            onChanged: (identifier) => _identifier = identifier,
-            onSubmit: (_) => _continue(authState),
+    return AutofillGroup(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Identifier input
+          Openable(
+            key: const Key('identifierInput'),
+            open: showIdentifierInput,
+            builder: (context) => ClerkIdentifierInput(
+              initialValue: _identifier,
+              strategies: env.identificationStrategies.toList(),
+              onChanged: (identifier) => _identifier = identifier,
+              onSubmit: (_) => _continue(authState),
+            ),
           ),
-        ),
 
-        // Identifier
-        Openable(
-          key: const Key('heading'),
-          open: showHeading,
-          builder: (context) {
-            late String headingText;
-            if (signIn.needsSecondFactor) {
-              headingText = l10ns.twoStepVerification;
-            } else if (signIn.needsClientTrust) {
-              headingText = l10ns.verifyThisDevice;
-            } else {
-              headingText = _identifier.identifier;
-            }
-            return Text(headingText, style: themeExtension.styles.heading);
-          },
-        ),
-
-        verticalMargin8,
-
-        // Email link message
-        Openable(
-          open: showEmailLinkMessage,
-          child: _EmailLinkMessage(
-            key: const Key('emailLinkMessage'),
-            identifier: safeIdentifier,
-          ),
-        ),
-
-        // Code input
-        Openable(
-          open: showCodeInput,
-          child: _CodeInput(
-            key: const Key('codeInput'),
-            strategy: _strategy,
-            identifier: safeIdentifier,
-            onChanged: _updateCode,
-            onSubmit: (code) => _submitCode(code, authState),
-            onResend: () => _resend(authState),
-          ),
-        ),
-
-        // Factors for first stage
-        Openable(
-          open: showFirstFactors,
-          child: _FactorList(
-            key: const Key('firstFactors'),
-            factors: firstFactors,
-            onPasswordChanged: _updatePassword,
-            onSubmit: (strategy) => _continue(authState, strategy: strategy),
-          ),
-        ),
-
-        // Factors for second stage
-        Openable(
-          open: showSecondFactors,
-          child: _FactorList(
-            key: const Key('secondFactors'),
-            factors: secondFactors,
-            onPasswordChanged: _updatePassword,
-            onSubmit: (strategy) => _continue(authState, strategy: strategy),
-          ),
-        ),
-
-        // Factors for device-trust stage
-        Openable(
-          open: showClientTrustFactors,
-          child: _FactorList(
-            key: const Key('clientTrustFactors'),
-            factors: clientTrustFactors,
-            onPasswordChanged: _updatePassword,
-            onSubmit: (strategy) => _continue(authState, strategy: strategy),
-          ),
-        ),
-
-        verticalMargin8,
-
-        // Buttons
-        ClerkControlButtons(
-          onContinue: _needsCont(signIn) ? () => _continue(authState) : null,
-          onBack: _needsBack(signIn) ? () => _reset(authState) : null,
-        ),
-
-        verticalMargin16,
-
-        if (env.user.passkeySettings.showSignInButton &&
-            env.supportsPasskeys) //
-          FutureBuilder(
-            future: _passkeyAvailable,
-            builder: (context, snapshot) {
-              return Openable(
-                open: snapshot.data == true && signIn.status.isUnknown,
-                builder: (context) => _UsePasskeyAction(
-                  onTap: () =>
-                      _continue(authState, strategy: clerk.Strategy.passkey),
-                ),
-              );
+          // Identifier
+          Openable(
+            key: const Key('heading'),
+            open: showHeading,
+            builder: (context) {
+              late String headingText;
+              if (signIn.needsSecondFactor) {
+                headingText = l10ns.twoStepVerification;
+              } else if (signIn.needsClientTrust) {
+                headingText = l10ns.verifyThisDevice;
+              } else {
+                headingText = _identifier.identifier;
+              }
+              return Text(headingText, style: themeExtension.styles.heading);
             },
           ),
 
-        verticalMargin16,
-      ],
+          verticalMargin8,
+
+          // Email link message
+          Openable(
+            open: showEmailLinkMessage,
+            child: _EmailLinkMessage(
+              key: const Key('emailLinkMessage'),
+              identifier: safeIdentifier,
+            ),
+          ),
+
+          // Code input
+          Openable(
+            open: showCodeInput,
+            child: _CodeInput(
+              key: const Key('codeInput'),
+              strategy: _strategy,
+              identifier: safeIdentifier,
+              onChanged: _updateCode,
+              onSubmit: (code) => _submitCode(code, authState),
+              onResend: () => _resend(authState),
+            ),
+          ),
+
+          // Factors for first stage
+          Openable(
+            open: showFirstFactors,
+            child: _FactorList(
+              key: const Key('firstFactors'),
+              factors: firstFactors,
+              onPasswordChanged: _updatePassword,
+              onSubmit: (strategy) => _continue(authState, strategy: strategy),
+            ),
+          ),
+
+          // Factors for second stage
+          Openable(
+            open: showSecondFactors,
+            child: _FactorList(
+              key: const Key('secondFactors'),
+              factors: secondFactors,
+              onPasswordChanged: _updatePassword,
+              onSubmit: (strategy) => _continue(authState, strategy: strategy),
+            ),
+          ),
+
+          // Factors for device-trust stage
+          Openable(
+            open: showClientTrustFactors,
+            child: _FactorList(
+              key: const Key('clientTrustFactors'),
+              factors: clientTrustFactors,
+              onPasswordChanged: _updatePassword,
+              onSubmit: (strategy) => _continue(authState, strategy: strategy),
+            ),
+          ),
+
+          verticalMargin8,
+
+          // Buttons
+          ClerkControlButtons(
+            onContinue: _needsCont(signIn) ? () => _continue(authState) : null,
+            onBack: _needsBack(signIn) ? () => _reset(authState) : null,
+          ),
+
+          verticalMargin16,
+
+          if (env.user.passkeySettings.showSignInButton &&
+              env.supportsPasskeys) //
+            FutureBuilder(
+              future: _passkeyAvailable,
+              builder: (context, snapshot) {
+                return Openable(
+                  open: snapshot.data == true && signIn.status.isUnknown,
+                  builder: (context) => _UsePasskeyAction(
+                    onTap: () =>
+                        _continue(authState, strategy: clerk.Strategy.passkey),
+                  ),
+                );
+              },
+            ),
+
+          verticalMargin16,
+        ],
+      ),
     );
   }
 }
@@ -500,6 +502,7 @@ class _FactorList extends StatelessWidget {
               label: l10ns.password,
               hint: l10ns.enterYourPassword,
               obscureText: true,
+              autofillHints: const [AutofillHints.password],
               onChanged: onPasswordChanged,
               onSubmit: (_) => onSubmit(clerk.Strategy.password),
               trailing: canResetPassword

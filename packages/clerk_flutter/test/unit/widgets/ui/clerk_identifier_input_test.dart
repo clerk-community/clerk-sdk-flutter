@@ -67,6 +67,24 @@ void main() {
       expect(widget.initialValue, initialValue);
     });
 
+    test('stores autofillHints parameter', () {
+      final widget = ClerkIdentifierInput(
+        onChanged: (id) {},
+        strategies: const [],
+        autofillHints: const [AutofillHints.email],
+      );
+      expect(widget.autofillHints, [AutofillHints.email]);
+    });
+
+    test('stores keyboardType parameter', () {
+      final widget = ClerkIdentifierInput(
+        onChanged: (id) {},
+        strategies: const [],
+        keyboardType: TextInputType.emailAddress,
+      );
+      expect(widget.keyboardType, TextInputType.emailAddress);
+    });
+
     testWidgets('creates state', (tester) async {
       await tester.pumpWidget(
         TestClerkAuthWrapper(

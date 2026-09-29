@@ -26,6 +26,9 @@ class ClerkTextFormField extends StatelessWidget {
     this.validator,
     this.trailing,
     this.hint,
+    this.autofillHints,
+    this.keyboardType,
+    this.textInputAction,
   });
 
   /// Report changes back to calling widget
@@ -71,6 +74,15 @@ class ClerkTextFormField extends StatelessWidget {
   /// Hint text
   final String? hint;
 
+  /// Autofill hints for platform-specific autofill services
+  final Iterable<String>? autofillHints;
+
+  /// The type of keyboard to use for editing the text
+  final TextInputType? keyboardType;
+
+  /// The type of action button to use for the keyboard
+  final TextInputAction? textInputAction;
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -95,6 +107,9 @@ class ClerkTextFormField extends StatelessWidget {
           focusNode: focusNode,
           inputFormatter: inputFormatter,
           hint: hint,
+          autofillHints: autofillHints,
+          keyboardType: keyboardType,
+          textInputAction: textInputAction,
         ),
       ],
     );
@@ -113,6 +128,9 @@ class _TextField extends StatefulWidget {
     this.inputFormatter,
     this.focusNode,
     this.hint,
+    this.autofillHints,
+    this.keyboardType,
+    this.textInputAction,
   });
 
   final ValueChanged<String>? onChanged;
@@ -125,6 +143,9 @@ class _TextField extends StatefulWidget {
   final TextInputFormatter? inputFormatter;
   final String? initial;
   final String? hint;
+  final Iterable<String>? autofillHints;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
 
   List<TextInputFormatter>? get inputFormatters => switch (inputFormatter) {
         TextInputFormatter formatter => [formatter],
@@ -154,6 +175,9 @@ class _TextFieldState extends State<_TextField> {
       initialValue: widget.initial,
       autofocus: widget.autofocus,
       focusNode: widget.focusNode,
+      autofillHints: widget.autofillHints,
+      keyboardType: widget.keyboardType,
+      textInputAction: widget.textInputAction,
       style: themeExtension.styles.inputText.copyWith(
         color:
             _valid ? themeExtension.colors.text : themeExtension.colors.error,

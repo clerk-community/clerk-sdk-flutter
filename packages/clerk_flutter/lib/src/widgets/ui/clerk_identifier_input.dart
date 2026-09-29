@@ -24,6 +24,8 @@ class ClerkIdentifierInput extends StatefulWidget {
     this.identifierType,
     this.initialValue,
     this.onSubmit,
+    this.autofillHints,
+    this.keyboardType,
   });
 
   /// The method to call when the input text changes
@@ -40,6 +42,12 @@ class ClerkIdentifierInput extends StatefulWidget {
 
   /// The value with which to initialise the field
   final Identifier? initialValue;
+
+  /// Optional autofill hints for the text field
+  final Iterable<String>? autofillHints;
+
+  /// Optional keyboard type for the text field
+  final TextInputType? keyboardType;
 
   @override
   State<ClerkIdentifierInput> createState() => _ClerkIdentifierInputState();
@@ -146,6 +154,24 @@ class _ClerkIdentifierInputState extends State<ClerkIdentifierInput> {
 
     final authState = ClerkAuth.of(context);
     final l10ns = authState.localizationsOf(context);
+    final defaultHints = switch (emailStrategies) {
+      final s
+          when s.any((e) => e == clerk.Strategy.emailAddress) &&
+              s.any((e) => e == clerk.Strategy.username) =>
+        const [AutofillHints.username, AutofillHints.email],
+      final s when s.any((e) => e == clerk.Strategy.emailAddress) => const [
+          AutofillHints.email
+        ],
+      final s when s.any((e) => e == clerk.Strategy.username) => const [
+          AutofillHints.username
+        ],
+      _ => const [AutofillHints.username, AutofillHints.email],
+    };
+    final defaultKeyboardType =
+        emailStrategies.any((e) => e == clerk.Strategy.emailAddress)
+            ? TextInputType.emailAddress
+            : TextInputType.text;
+
     return Column(
       children: [
         if (hasEmailStrategies) //
@@ -163,6 +189,8 @@ class _ClerkIdentifierInputState extends State<ClerkIdentifierInput> {
                   context: context,
                 ),
               ),
+              autofillHints: widget.autofillHints ?? defaultHints,
+              keyboardType: widget.keyboardType ?? defaultKeyboardType,
               onChanged: (ident) => _onChanged(Identifier(ident)),
               onSubmit: _onSubmit,
               focusNode: _emailFocusNode,

@@ -107,6 +107,27 @@ void main() {
       expect(widget.hint, 'Hint Text');
     });
 
+    test('stores autofillHints parameter', () {
+      const widget = ClerkTextFormField(
+        autofillHints: [AutofillHints.email],
+      );
+      expect(widget.autofillHints, [AutofillHints.email]);
+    });
+
+    test('stores keyboardType parameter', () {
+      const widget = ClerkTextFormField(
+        keyboardType: TextInputType.emailAddress,
+      );
+      expect(widget.keyboardType, TextInputType.emailAddress);
+    });
+
+    test('stores textInputAction parameter', () {
+      const widget = ClerkTextFormField(
+        textInputAction: TextInputAction.next,
+      );
+      expect(widget.textInputAction, TextInputAction.next);
+    });
+
     testWidgets('renders Column', (tester) async {
       await tester.pumpWidget(
         TestClerkAuthWrapper(
@@ -153,6 +174,31 @@ void main() {
       await tester.pump();
 
       expect(find.byType(TextFormField), findsOneWidget);
+    });
+
+    testWidgets(
+        'passes autofillHints, keyboardType, and textInputAction to TextFormField',
+        (tester) async {
+      await tester.pumpWidget(
+        TestClerkAuthWrapper(
+          authState: authState,
+          child: const Scaffold(
+            body: SingleChildScrollView(
+              child: ClerkTextFormField(
+                autofillHints: [AutofillHints.password],
+                keyboardType: TextInputType.visiblePassword,
+                textInputAction: TextInputAction.done,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.autofillHints, [AutofillHints.password]);
+      expect(textField.keyboardType, TextInputType.visiblePassword);
+      expect(textField.textInputAction, TextInputAction.done);
     });
   });
 }

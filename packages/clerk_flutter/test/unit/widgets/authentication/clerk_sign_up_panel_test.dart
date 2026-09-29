@@ -57,6 +57,28 @@ void main() {
       expect(find.byType(ClerkSignUpPanel), findsOneWidget);
     });
 
+    testWidgets('renders AutofillGroup widget', (tester) async {
+      await tester.pumpWidget(
+        TestClerkAuthWrapper(
+          authState: authState,
+          child: const Scaffold(
+            body: SingleChildScrollView(
+              child: ClerkSignUpPanel(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.descendant(
+          of: find.byType(ClerkSignUpPanel),
+          matching: find.byType(AutofillGroup),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('renders ClerkControlButtons widget', (tester) async {
       await tester.pumpWidget(
         TestClerkAuthWrapper(

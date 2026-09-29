@@ -106,6 +106,8 @@ class _ClerkUserProfileState extends State<ClerkUserProfile>
         clerk.IdentifierType.emailAddress => ClerkTextFormField(
             label: localizations.emailAddress,
             autofocus: true,
+            autofillHints: const [AutofillHints.email],
+            keyboardType: TextInputType.emailAddress,
             onChanged: (text) => identifier = text,
             onSubmit: (_) => Navigator.of(context).pop(true),
             validator: (text) => _validate(text, type),
