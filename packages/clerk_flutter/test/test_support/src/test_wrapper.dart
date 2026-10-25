@@ -9,13 +9,15 @@ Future<ClerkAuthState> createTestAuthState({
   TestClerkAuthConfig? config,
   clerk.Client? client,
   clerk.User? user,
+  clerk.Environment? environment,
 }) async {
   final effectiveConfig = config ??
       (user != null
           ? TestClerkAuthConfig.signedIn(user: user)
-          : (client != null
-              ? TestClerkAuthConfig(initialClient: client)
-              : TestClerkAuthConfig()));
+          : TestClerkAuthConfig(
+              initialClient: client,
+              initialEnvironment: environment,
+            ));
 
   return ClerkAuthState.create(config: effectiveConfig);
 }
