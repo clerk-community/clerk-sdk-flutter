@@ -79,6 +79,19 @@ class Environment with InformativeToStringMixin {
   /// Do we have oauth strategies?
   bool get hasOauthStrategies => oauthStrategies.isNotEmpty;
 
+  /// May a visitor create an account from the sign-up form?
+  ///
+  /// Reads `user_settings.sign_up.mode` — see [SignUpSettings.mode] — which Clerk reports as one
+  /// of `public`, `restricted` or `waitlist`. Only `public` lets somebody sign themselves up:
+  /// `restricted` requires an invitation, and `waitlist` collects an address for later. This SDK
+  /// implements neither of those flows, so on such an instance the sign-up form can only produce a
+  /// rejection from the API.
+  ///
+  /// Deliberately strict: anything that is not `public` reads as closed. An unrecognised value is
+  /// far likelier to be a mode this getter has not heard of than a reason to offer an account to
+  /// everyone.
+  bool get signUpIsOpen => user.signUp.mode == 'public';
+
   bool _supports(UserAttribute attr, Strategy strategy) =>
       user.attributes[attr]?.verifications.contains(strategy) == true;
 

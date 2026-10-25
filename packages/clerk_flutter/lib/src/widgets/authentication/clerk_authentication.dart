@@ -29,6 +29,15 @@ enum _AuthState {
 /// connections. You can further customize you [ClerkAuthentication] by passing additional
 /// properties.
 ///
+/// That includes the instance's **sign-up mode**. On a `restricted` or `waitlist` instance the
+/// widget offers sign-in only: the "Don't have an account? Sign up" toggle is not rendered,
+/// because filling in the form it leads to can only end in the API refusing the sign-up.
+///
+/// **The panel itself is not gated, only the way to reach it by choice.** If something has already
+/// put the auth state into signing-up, [ClerkSignUpPanel] still renders — a sign-up in flight must
+/// not become a blank card, and hiding a form somebody is part-way through is a worse failure than
+/// showing one that is refused.
+///
 @immutable
 class ClerkAuthentication extends StatefulWidget {
   /// Constructs a new [ClerkAuthentication].
@@ -105,10 +114,14 @@ class _ClerkAuthenticationState extends State<ClerkAuthentication>
           ),
         ],
       ),
-      bottomPortion: _BottomPortion(
-        state: _state,
-        onChange: () => setState(() => _state = _state.nextState),
-      ),
+      // The toggle to *choose* sign-up, and nothing else — see the class doc above. Gone when the
+      // instance does not allow one, so the widget stops offering an account it cannot create.
+      bottomPortion: authState.env.signUpIsOpen
+          ? _BottomPortion(
+              state: _state,
+              onChange: () => setState(() => _state = _state.nextState),
+            )
+          : emptyWidget,
     );
   }
 }

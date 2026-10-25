@@ -120,6 +120,32 @@ void main() {
       });
     });
 
+    group('signUpIsOpen', () {
+      Environment envWithMode(String mode) => Environment(
+            user: UserSettings(signUp: SignUpSettings(mode: mode)),
+          );
+
+      test('is true only when the instance is public', () {
+        expect(envWithMode('public').signUpIsOpen, true);
+      });
+
+      test('is false when sign-up needs an invitation or a waitlist', () {
+        // Neither flow is implemented here, so on these instances the sign-up form can only
+        // produce a rejection from the API.
+        expect(envWithMode('restricted').signUpIsOpen, false);
+        expect(envWithMode('waitlist').signUpIsOpen, false);
+      });
+
+      test('is false for a mode it does not recognise, and for none at all', () {
+        // Strict on purpose: an unrecognised value is likelier to be a mode this does not know
+        // about than a reason to offer an account to everyone. `Environment.empty` carries no
+        // mode at all, which is the state before the environment has been fetched.
+        expect(envWithMode('something_new').signUpIsOpen, false);
+        expect(envWithMode('').signUpIsOpen, false);
+        expect(Environment.empty.signUpIsOpen, false);
+      });
+    });
+
     group('otherStrategies', () {
       test('filters to other strategies', () {
         const env = Environment(
