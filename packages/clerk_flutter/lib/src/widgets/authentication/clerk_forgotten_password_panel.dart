@@ -191,34 +191,38 @@ class _ClerkForgottenPasswordPanelState
                 ),
                 Closeable(
                   closed: _code.length != 6,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      verticalMargin16,
-                      ClerkTextFormField(
-                        label: l10ns.newPassword,
-                        obscureText: _obscured,
-                        onObscure: _toggleObscurePassword,
-                        onChanged: (password) => _password = password,
-                        onSubmit: (_) => _submit(authState, context),
-                      ),
-                      verticalMargin8,
-                      ClerkTextFormField(
-                        label: l10ns.newPasswordConfirmation,
-                        obscureText: _obscured,
-                        onObscure: _toggleObscurePassword,
-                        onChanged: (conf) => _confirmation = conf,
-                        onSubmit: (_) => _submit(authState, context),
-                      ),
-                      verticalMargin8,
-                      _ActionButton(
-                        onPressed: () => _submit(authState, context),
-                        label: l10ns.resetPassword,
-                        isProcessing:
-                            _flowState.isAwaitingReset, // hack by-product
-                      )
-                    ],
+                  child: AutofillGroup(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        verticalMargin16,
+                        ClerkTextFormField(
+                          label: l10ns.newPassword,
+                          obscureText: _obscured,
+                          autofillHints: const [AutofillHints.newPassword],
+                          onObscure: _toggleObscurePassword,
+                          onChanged: (password) => _password = password,
+                          onSubmit: (_) => _submit(authState, context),
+                        ),
+                        verticalMargin8,
+                        ClerkTextFormField(
+                          label: l10ns.newPasswordConfirmation,
+                          obscureText: _obscured,
+                          autofillHints: const [AutofillHints.newPassword],
+                          onObscure: _toggleObscurePassword,
+                          onChanged: (conf) => _confirmation = conf,
+                          onSubmit: (_) => _submit(authState, context),
+                        ),
+                        verticalMargin8,
+                        _ActionButton(
+                          onPressed: () => _submit(authState, context),
+                          label: l10ns.resetPassword,
+                          isProcessing:
+                              _flowState.isAwaitingReset, // hack by-product
+                        )
+                      ],
+                    ),
                   ),
                 ),
               ],

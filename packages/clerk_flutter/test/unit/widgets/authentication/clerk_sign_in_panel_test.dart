@@ -77,6 +77,28 @@ void main() {
       expect(find.byType(Column), findsWidgets);
     });
 
+    testWidgets('renders AutofillGroup', (tester) async {
+      await tester.pumpWidget(
+        TestClerkAuthWrapper(
+          authState: authState,
+          child: const Scaffold(
+            body: SingleChildScrollView(
+              child: ClerkSignInPanel(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        find.descendant(
+          of: find.byType(ClerkSignInPanel),
+          matching: find.byType(AutofillGroup),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('renders when environment has identification strategies',
         (tester) async {
       await tester.pumpWidget(

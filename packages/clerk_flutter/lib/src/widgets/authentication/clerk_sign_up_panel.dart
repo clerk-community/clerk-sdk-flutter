@@ -280,123 +280,125 @@ class _ClerkSignUpPanelState extends State<ClerkSignUpPanel>
         _Attribute(clerk.UserAttribute.passwordConfirmation, password.data);
 
     final themeExtension = ClerkAuth.themeExtensionOf(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Phone code input
-        if (env.supportsPhoneCode) //
-          _CodeInputBox(
-            attribute: clerk.UserAttribute.phoneNumber,
-            value: _values[clerk.UserAttribute.phoneNumber]?.prettyIdentifier,
-            localizations: l10ns,
-            open: awaitingPhoneCode,
-            onSubmit: (code) async {
-              await _sendCode(authState, code, clerk.Strategy.phoneCode);
-              return false;
-            },
-            onResend: () => _resend(authState, clerk.Strategy.phoneCode),
-          ),
-
-        // Email code input
-        if (env.supportsEmailCode) //
-          _CodeInputBox(
-            attribute: clerk.UserAttribute.emailAddress,
-            value: emailAddress,
-            localizations: l10ns,
-            open: awaitingEmailCode,
-            onSubmit: (code) async {
-              await _sendCode(authState, code, clerk.Strategy.emailCode);
-              return false;
-            },
-            onResend: () => _resend(authState, clerk.Strategy.emailCode),
-          ),
-
-        // Email link message
-        if (env.supportsEmailLink) //
-          Openable(
-            open: awaitingEmailLink,
-            builder: (context) => Column(
-              children: [
-                Text(
-                  emailAddress is String
-                      ? l10ns.clickOnTheLinkThatsBeenSentTo(emailAddress)
-                      : l10ns.clickOnTheLinkThatsBeenSentToYou,
-                  textAlign: TextAlign.center,
-                  maxLines: 3,
-                  style: themeExtension.styles.subheading,
-                ),
-                verticalMargin16,
-                defaultLoadingWidget,
-              ],
+    return AutofillGroup(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Phone code input
+          if (env.supportsPhoneCode) //
+            _CodeInputBox(
+              attribute: clerk.UserAttribute.phoneNumber,
+              value: _values[clerk.UserAttribute.phoneNumber]?.prettyIdentifier,
+              localizations: l10ns,
+              open: awaitingPhoneCode,
+              onSubmit: (code) async {
+                await _sendCode(authState, code, clerk.Strategy.phoneCode);
+                return false;
+              },
+              onResend: () => _resend(authState, clerk.Strategy.phoneCode),
             ),
-          ),
 
-        // Choose email strategy
-        if (needsEmail) //
-          Openable(
-            open: awaitingPhoneCode == false && needsEmailStrategy,
-            builder: (context) => Column(
-              children: [
-                for (final strategy in [
-                  if (env.supportsEmailCode) clerk.Strategy.emailCode,
-                  if (env.supportsEmailLink) clerk.Strategy.emailLink,
-                ]) //
-                  Padding(
-                    padding: topPadding4,
-                    child: StrategyButton(
-                      key: ValueKey<clerk.Strategy>(strategy),
-                      strategy: strategy,
-                      safeIdentifier:
-                          _valueOrNull(clerk.UserAttribute.emailAddress),
-                      onClick: () async {
-                        await authState.safelyCall(
-                          context,
-                          () => _prepareVerification(authState, strategy),
-                        );
-                      },
+          // Email code input
+          if (env.supportsEmailCode) //
+            _CodeInputBox(
+              attribute: clerk.UserAttribute.emailAddress,
+              value: emailAddress,
+              localizations: l10ns,
+              open: awaitingEmailCode,
+              onSubmit: (code) async {
+                await _sendCode(authState, code, clerk.Strategy.emailCode);
+                return false;
+              },
+              onResend: () => _resend(authState, clerk.Strategy.emailCode),
+            ),
+
+          // Email link message
+          if (env.supportsEmailLink) //
+            Openable(
+              open: awaitingEmailLink,
+              builder: (context) => Column(
+                children: [
+                  Text(
+                    emailAddress is String
+                        ? l10ns.clickOnTheLinkThatsBeenSentTo(emailAddress)
+                        : l10ns.clickOnTheLinkThatsBeenSentToYou,
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    style: themeExtension.styles.subheading,
+                  ),
+                  verticalMargin16,
+                  defaultLoadingWidget,
+                ],
+              ),
+            ),
+
+          // Choose email strategy
+          if (needsEmail) //
+            Openable(
+              open: awaitingPhoneCode == false && needsEmailStrategy,
+              builder: (context) => Column(
+                children: [
+                  for (final strategy in [
+                    if (env.supportsEmailCode) clerk.Strategy.emailCode,
+                    if (env.supportsEmailLink) clerk.Strategy.emailLink,
+                  ]) //
+                    Padding(
+                      padding: topPadding4,
+                      child: StrategyButton(
+                        key: ValueKey<clerk.Strategy>(strategy),
+                        strategy: strategy,
+                        safeIdentifier:
+                            _valueOrNull(clerk.UserAttribute.emailAddress),
+                        onClick: () async {
+                          await authState.safelyCall(
+                            context,
+                            () => _prepareVerification(authState, strategy),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                verticalMargin8,
+                  verticalMargin8,
+                ],
+              ),
+            ),
+
+          // Input fields
+          Openable(
+            open: awaitingSomething == false,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final attribute in attributes) //
+                  if (hasMissingFields == false ||
+                      signUp?.missing(
+                              clerk.Field.forUserAttribute(attribute.attr)) ==
+                          true)
+                    _FormField(
+                      attribute: attribute,
+                      authState: authState,
+                      localizations: l10ns,
+                      values: _values,
+                      highlight: _highlightMissing,
+                    ),
               ],
             ),
           ),
 
-        // Input fields
-        Openable(
-          open: awaitingSomething == false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final attribute in attributes) //
-                if (hasMissingFields == false ||
-                    signUp?.missing(
-                            clerk.Field.forUserAttribute(attribute.attr)) ==
-                        true)
-                  _FormField(
-                    attribute: attribute,
-                    authState: authState,
-                    localizations: l10ns,
-                    values: _values,
-                    highlight: _highlightMissing,
-                  ),
-            ],
+          // Control buttons
+          _ControlButtons(
+            onAcceptTerms: _acceptTerms,
+            onContinue: awaitingEmailLink == false
+                ? () => _continue(authState, attributes)
+                : null,
+            onBack: awaitingSomething ? () => _reset(authState) : null,
+            needsLegalAcceptance: _needsLegalAcceptance,
+            hasLegalAcceptance: _hasLegalAcceptance,
           ),
-        ),
 
-        // Control buttons
-        _ControlButtons(
-          onAcceptTerms: _acceptTerms,
-          onContinue: awaitingEmailLink == false
-              ? () => _continue(authState, attributes)
-              : null,
-          onBack: awaitingSomething ? () => _reset(authState) : null,
-          needsLegalAcceptance: _needsLegalAcceptance,
-          hasLegalAcceptance: _hasLegalAcceptance,
-        ),
-
-        verticalMargin32,
-      ],
+          verticalMargin32,
+        ],
+      ),
     );
   }
 }
@@ -430,6 +432,27 @@ class _FormField extends StatelessWidget {
           (values[attribute.attr]?.identifier.trim() ?? '').isEmpty);
 
   Widget _formField(_Attribute attribute) {
+    final hints = switch (attribute.attr) {
+      clerk.UserAttribute.emailAddress => const [AutofillHints.email],
+      clerk.UserAttribute.username => const [AutofillHints.username],
+      clerk.UserAttribute.password => const [AutofillHints.newPassword],
+      clerk.UserAttribute.passwordConfirmation => const [
+          AutofillHints.newPassword,
+        ],
+      clerk.UserAttribute.firstName => const [AutofillHints.givenName],
+      clerk.UserAttribute.lastName => const [AutofillHints.familyName],
+      clerk.UserAttribute.phoneNumber => const [AutofillHints.telephoneNumber],
+      _ => null,
+    };
+    final keyboardType = switch (attribute.attr) {
+      clerk.UserAttribute.emailAddress => TextInputType.emailAddress,
+      clerk.UserAttribute.phoneNumber => TextInputType.phone,
+      clerk.UserAttribute.firstName ||
+      clerk.UserAttribute.lastName =>
+        TextInputType.name,
+      _ => null,
+    };
+
     if (attribute.needsObscuring) {
       return ValueListenableBuilder(
         valueListenable: _obscure,
@@ -440,6 +463,8 @@ class _FormField extends StatelessWidget {
             obscureText: obscure,
             onObscure: () => _obscure.value = !obscure,
             isMissing: _isMissing(authState, attribute),
+            autofillHints: hints,
+            keyboardType: keyboardType,
             onChanged: (value) => values[attribute.attr] = Identifier(value),
           );
         },
@@ -450,6 +475,8 @@ class _FormField extends StatelessWidget {
       initial: values[attribute.attr]?.identifier,
       label: attribute.title(localizations),
       isMissing: _isMissing(authState, attribute),
+      autofillHints: hints,
+      keyboardType: keyboardType,
       onChanged: (value) => values[attribute.attr] = Identifier(value),
     );
   }
