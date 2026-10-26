@@ -43,10 +43,27 @@ class _ClerkSignInPanelState extends State<ClerkSignInPanel>
   String _password = '';
   String _code = '';
 
-  void _onError(clerk.ClerkError _) {
+  void _onError(clerk.ClerkError error) {
     setState(() {
       _password = _code = '';
-      _strategy = clerk.Strategy.unknown;
+
+      // A rejected code is the one error recoverable where the user is standing,
+      // so hold the panel on the code input rather than resetting the strategy.
+      //
+      // `showCodeInput` is `_strategy.requiresCode`, so clearing the strategy
+      // takes the code field off screen and returns the panel to the factor
+      // chooser. The only way forward from there is to pick the factor again,
+      // which re-prepares it — emailing a fresh code and invalidating the one
+      // already in the user's inbox. They then type the code they are looking
+      // at, which is now the previous one, and it is rejected in turn. Every
+      // retry races the inbox, so the loop has no exit.
+      //
+      // Holding position costs nothing: the error still surfaces via
+      // `ClerkErrorListener`, and `onResend` is already on screen for anyone who
+      // does want a new code.
+      if (error.isIncorrectCode == false) {
+        _strategy = clerk.Strategy.unknown;
+      }
     });
   }
 

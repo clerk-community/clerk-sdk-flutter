@@ -146,4 +146,50 @@ void main() {
       expect(ClerkErrorCode.values.contains(ClerkErrorCode.clientAppError));
     });
   });
+
+  // A rejected code is recoverable in place, and `ClerkSignInPanel` keys its
+  // decision to hold the code input on this predicate. Getting it wrong returns
+  // the panel to the factor chooser, where retrying re-sends the code and
+  // invalidates the one the user is holding.
+  group('ClerkError.isIncorrectCode', () {
+    test('is true for a server response carrying form_code_incorrect', () {
+      const error = ClerkError(
+        code: ClerkErrorCode.serverErrorResponse,
+        message: 'Incorrect code',
+        errors: ExternalErrorCollection(
+          errors: [
+            ExternalError(
+              message: 'Incorrect code',
+              code: 'form_code_incorrect',
+            ),
+          ],
+        ),
+      );
+
+      expect(error.isIncorrectCode, isTrue);
+    });
+
+    test('is false for a different server error', () {
+      const error = ClerkError(
+        code: ClerkErrorCode.serverErrorResponse,
+        message: 'Expired',
+        errors: ExternalErrorCollection(
+          errors: [
+            ExternalError(message: 'Expired', code: 'verification_expired'),
+          ],
+        ),
+      );
+
+      expect(error.isIncorrectCode, isFalse);
+    });
+
+    test('is false when the error carries no external errors', () {
+      const error = ClerkError(
+        code: ClerkErrorCode.unknownError,
+        message: 'An error occurred',
+      );
+
+      expect(error.isIncorrectCode, isFalse);
+    });
+  });
 }

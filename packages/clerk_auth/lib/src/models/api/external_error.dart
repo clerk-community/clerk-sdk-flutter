@@ -90,6 +90,9 @@ class ExternalErrorCollection {
   bool get containsExternalAccountNotFoundError =>
       _contains('external_account_not_found');
 
+  /// Does this represent form_code_incorrect?
+  bool get containsIncorrectCodeError => _contains('form_code_incorrect');
+
   bool _contains(String err) => errors?.any((e) => e.code == err) == true;
 
   /// fromJson

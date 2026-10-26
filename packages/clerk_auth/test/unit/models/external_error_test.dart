@@ -167,5 +167,45 @@ void main() {
 
       expect(json['errors'], isNotNull);
     });
+
+    test('containsIncorrectCodeError detects form_code_incorrect', () {
+      const collection = ExternalErrorCollection(
+        errors: [
+          ExternalError(message: 'Incorrect code', code: 'form_code_incorrect'),
+        ],
+      );
+
+      expect(collection.containsIncorrectCodeError, isTrue);
+    });
+
+    test('containsIncorrectCodeError finds it among several errors', () {
+      const collection = ExternalErrorCollection(
+        errors: [
+          ExternalError(message: 'Something else', code: 'form_param_missing'),
+          ExternalError(message: 'Incorrect code', code: 'form_code_incorrect'),
+        ],
+      );
+
+      expect(collection.containsIncorrectCodeError, isTrue);
+    });
+
+    test('containsIncorrectCodeError is false for another code', () {
+      const collection = ExternalErrorCollection(
+        errors: [
+          ExternalError(
+            message: 'Expired',
+            code: 'verification_expired',
+          ),
+        ],
+      );
+
+      expect(collection.containsIncorrectCodeError, isFalse);
+    });
+
+    test('containsIncorrectCodeError is false when there are no errors', () {
+      const collection = ExternalErrorCollection();
+
+      expect(collection.containsIncorrectCodeError, isFalse);
+    });
   });
 }

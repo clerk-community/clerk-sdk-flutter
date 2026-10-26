@@ -59,6 +59,14 @@ class ClerkError implements Exception {
   /// Any associated [ExternalErrorCollection]
   final ExternalErrorCollection? errors;
 
+  /// Does this error report a verification code the back end rejected?
+  ///
+  /// Recoverable where the user stands: the code was wrong, but the
+  /// verification it was checked against is still valid, so retyping it is
+  /// enough. Distinct from an expired or consumed verification, which needs a
+  /// new code.
+  bool get isIncorrectCode => errors?.containsIncorrectCodeError == true;
+
   @override
   String toString() {
     if (argument case String argument) {
