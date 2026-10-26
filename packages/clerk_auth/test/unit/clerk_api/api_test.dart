@@ -1,3 +1,5 @@
+import 'dart:io' show HttpHeaders;
+
 import 'package:clerk_auth/clerk_auth.dart';
 import 'package:clerk_auth/src/clerk_api/api.dart';
 import 'package:clerk_auth/src/models/api/external_error.dart';
@@ -103,26 +105,79 @@ void main() {
     });
 
     group('signOut and deleteUser', () {
-      test('signOut returns empty client', () async {
+      test('signOut authenticates the request and clears tokens', () async {
         await api.initialize();
+        mockHttp.addAuthenticatedClientWithSessionResponse();
+        await api.currentClient();
         mockHttp.addEmptyResponse();
 
         final client = await api.signOut();
 
         expect(client.isEmpty, true);
-        expect(mockHttp.calls.first.method, HttpMethod.delete);
-        expect(mockHttp.calls.first.uri.path, contains('/client'));
+        final deleteCall = mockHttp.calls.last;
+        expect(deleteCall.method, HttpMethod.delete);
+        expect(deleteCall.uri.path, contains('/client'));
+        expect(
+          deleteCall.headers?[HttpHeaders.authorizationHeader],
+          'test_client_token',
+        );
+
+        mockHttp.addClientResponse();
+        await api.currentClient();
+        expect(
+          mockHttp.calls.last.headers?[HttpHeaders.authorizationHeader],
+          isNull,
+        );
       });
 
-      test('deleteUser returns empty client', () async {
+      test('deleteUser authenticates the request before clearing tokens',
+          () async {
         await api.initialize();
+        mockHttp.addAuthenticatedClientWithSessionResponse();
+        await api.currentClient();
         mockHttp.addEmptyResponse();
 
         final client = await api.deleteUser();
 
         expect(client.isEmpty, true);
-        expect(mockHttp.calls.first.method, HttpMethod.delete);
-        expect(mockHttp.calls.first.uri.path, contains('/me'));
+        final deleteCall = mockHttp.calls.last;
+        expect(deleteCall.method, HttpMethod.delete);
+        expect(deleteCall.uri.path, contains('/me'));
+        expect(
+          deleteCall.headers?[HttpHeaders.authorizationHeader],
+          'test_client_token',
+        );
+        expect(
+          deleteCall.uri.queryParameters['_clerk_session_id'],
+          'sess_123',
+        );
+
+        mockHttp.addClientResponse();
+        await api.currentClient();
+        expect(
+          mockHttp.calls.last.headers?[HttpHeaders.authorizationHeader],
+          isNull,
+        );
+      });
+
+      test('deleteUser preserves tokens and throws when deletion fails',
+          () async {
+        await api.initialize();
+        mockHttp.addAuthenticatedClientWithSessionResponse();
+        await api.currentClient();
+        mockHttp.addEmptyResponse(statusCode: 500);
+
+        await expectLater(
+          api.deleteUser(),
+          throwsA(isA<ExternalError>()),
+        );
+
+        mockHttp.addClientResponse();
+        await api.currentClient();
+        expect(
+          mockHttp.calls.last.headers?[HttpHeaders.authorizationHeader],
+          'test_client_token',
+        );
       });
     });
 

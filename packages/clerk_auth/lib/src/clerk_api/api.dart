@@ -153,7 +153,18 @@ class Api with Logging {
 
   /// Deletes the [User] for the current [Session]
   Future<Client> deleteUser() async {
-    await _delete('/me', requiresSessionId: true);
+    final deleted = await _delete(
+      '/me',
+      requiresSessionId: true,
+      clearTokenCache: false,
+    );
+    if (!deleted) {
+      throw const ExternalError(
+        message: 'Unable to delete user',
+        errorCode: ClerkErrorCode.serverErrorResponse,
+      );
+    }
+    _tokenCache.clear();
     return Client.empty;
   }
 
@@ -163,10 +174,13 @@ class Api with Logging {
     return Client.empty;
   }
 
-  Future<bool> _delete(String path, {bool requiresSessionId = false}) async {
-    _tokenCache.clear();
+  Future<bool> _delete(
+    String path, {
+    bool requiresSessionId = false,
+    bool clearTokenCache = true,
+  }) async {
+    final headers = _headers(method: HttpMethod.delete);
     try {
-      final headers = _headers(method: HttpMethod.delete);
       final resp = await _fetch(
         method: HttpMethod.delete,
         path: path,
@@ -180,6 +194,8 @@ class Api with Logging {
       }
     } catch (error, stacktrace) {
       logSevere('Error during DELETE $path', error, stacktrace);
+    } finally {
+      if (clearTokenCache) _tokenCache.clear();
     }
 
     return false;

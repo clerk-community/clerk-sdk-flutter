@@ -1110,6 +1110,7 @@ class Auth {
     if (env.user.actions.deleteSelf) {
       await _api.deleteUser();
       client = await _api.currentClient();
+      await config.persistor.delete(_kClientKey);
       update();
     } else {
       handleError(
